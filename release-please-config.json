@@ -61,6 +61,6 @@
   ],
   "release-type": "python",
   "extra-files": [
-    "src/ai_inbx/_version.py"
+    "src/aiinbx/_version.py"
   ]
 }

@@ -10,15 +10,15 @@ import httpx
 import pytest
 from pytest_asyncio import is_async_test
 
-from ai_inbx import AIInbx, AsyncAIInbx, DefaultAioHttpClient
-from ai_inbx._utils import is_dict
+from aiinbx import AIInbx, AsyncAIInbx, DefaultAioHttpClient
+from aiinbx._utils import is_dict
 
 if TYPE_CHECKING:
     from _pytest.fixtures import FixtureRequest  # pyright: ignore[reportPrivateImportUsage]
 
 pytest.register_assert_rewrite("tests.utils")
 
-logging.getLogger("ai_inbx").setLevel(logging.DEBUG)
+logging.getLogger("aiinbx").setLevel(logging.DEBUG)
 
 
 # automatically add `pytest.mark.asyncio()` to all of our async tests
