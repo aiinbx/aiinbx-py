@@ -1,7 +1,7 @@
 # AI Inbx Python API library
 
 <!-- prettier-ignore -->
-[![PyPI version](https://img.shields.io/pypi/v/ai_inbx.svg?label=pypi%20(stable))](https://pypi.org/project/ai_inbx/)
+[![PyPI version](https://img.shields.io/pypi/v/aiinbx.svg?label=pypi%20(stable))](https://pypi.org/project/aiinbx/)
 
 The AI Inbx Python library provides convenient access to the AI Inbx REST API from any Python 3.8+
 application. The library includes type definitions for all request params and response fields,
@@ -16,12 +16,9 @@ The full API of this library can be found in [api.md](api.md).
 ## Installation
 
 ```sh
-# install from this staging repo
-pip install git+ssh://git@github.com/stainless-sdks/ai-inbx-python.git
+# install from PyPI
+pip install aiinbx
 ```
-
-> [!NOTE]
-> Once this package is [published to PyPI](https://www.stainless.com/docs/guides/publish), this will become: `pip install ai_inbx`
 
 ## Usage
 
@@ -29,7 +26,7 @@ The full API of this library can be found in [api.md](api.md).
 
 ```python
 import os
-from ai_inbx import AIInbx
+from aiinbx import AIInbx
 
 client = AIInbx(
     api_key=os.environ.get("AI_INBX_API_KEY"),  # This is the default and can be omitted
@@ -51,7 +48,7 @@ Simply import `AsyncAIInbx` instead of `AIInbx` and use `await` with each API ca
 ```python
 import os
 import asyncio
-from ai_inbx import AsyncAIInbx
+from aiinbx import AsyncAIInbx
 
 client = AsyncAIInbx(
     api_key=os.environ.get("AI_INBX_API_KEY"),  # This is the default and can be omitted
@@ -75,16 +72,16 @@ By default, the async client uses `httpx` for HTTP requests. However, for improv
 You can enable this by installing `aiohttp`:
 
 ```sh
-# install from this staging repo
-pip install 'ai_inbx[aiohttp] @ git+ssh://git@github.com/stainless-sdks/ai-inbx-python.git'
+# install from PyPI
+pip install aiinbx[aiohttp]
 ```
 
 Then you can enable it by instantiating the client with `http_client=DefaultAioHttpClient()`:
 
 ```python
 import asyncio
-from ai_inbx import DefaultAioHttpClient
-from ai_inbx import AsyncAIInbx
+from aiinbx import DefaultAioHttpClient
+from aiinbx import AsyncAIInbx
 
 
 async def main() -> None:
@@ -110,27 +107,27 @@ Typed requests and responses provide autocomplete and documentation within your 
 
 ## Handling errors
 
-When the library is unable to connect to the API (for example, due to network connection problems or a timeout), a subclass of `ai_inbx.APIConnectionError` is raised.
+When the library is unable to connect to the API (for example, due to network connection problems or a timeout), a subclass of `aiinbx.APIConnectionError` is raised.
 
 When the API returns a non-success status code (that is, 4xx or 5xx
-response), a subclass of `ai_inbx.APIStatusError` is raised, containing `status_code` and `response` properties.
+response), a subclass of `aiinbx.APIStatusError` is raised, containing `status_code` and `response` properties.
 
-All errors inherit from `ai_inbx.APIError`.
+All errors inherit from `aiinbx.APIError`.
 
 ```python
-import ai_inbx
-from ai_inbx import AIInbx
+import aiinbx
+from aiinbx import AIInbx
 
 client = AIInbx()
 
 try:
     client.threads.search()
-except ai_inbx.APIConnectionError as e:
+except aiinbx.APIConnectionError as e:
     print("The server could not be reached")
     print(e.__cause__)  # an underlying Exception, likely raised within httpx.
-except ai_inbx.RateLimitError as e:
+except aiinbx.RateLimitError as e:
     print("A 429 status code was received; we should back off a bit.")
-except ai_inbx.APIStatusError as e:
+except aiinbx.APIStatusError as e:
     print("Another non-200-range status code was received")
     print(e.status_code)
     print(e.response)
@@ -158,7 +155,7 @@ Connection errors (for example, due to a network connectivity problem), 408 Requ
 You can use the `max_retries` option to configure or disable retry settings:
 
 ```python
-from ai_inbx import AIInbx
+from aiinbx import AIInbx
 
 # Configure the default for all requests:
 client = AIInbx(
@@ -176,7 +173,7 @@ By default requests time out after 1 minute. You can configure this with a `time
 which accepts a float or an [`httpx.Timeout`](https://www.python-httpx.org/advanced/timeouts/#fine-tuning-the-configuration) object:
 
 ```python
-from ai_inbx import AIInbx
+from aiinbx import AIInbx
 
 # Configure the default for all requests:
 client = AIInbx(
@@ -228,7 +225,7 @@ if response.my_field is None:
 The "raw" Response object can be accessed by prefixing `.with_raw_response.` to any HTTP method call, e.g.,
 
 ```py
-from ai_inbx import AIInbx
+from aiinbx import AIInbx
 
 client = AIInbx()
 response = client.threads.with_raw_response.search()
@@ -238,9 +235,9 @@ thread = response.parse()  # get the object that `threads.search()` would have r
 print(thread.pagination)
 ```
 
-These methods return an [`APIResponse`](https://github.com/stainless-sdks/ai-inbx-python/tree/main/src/ai_inbx/_response.py) object.
+These methods return an [`APIResponse`](https://github.com/aiinbx/aiinbx-py/tree/main/src/aiinbx/_response.py) object.
 
-The async client returns an [`AsyncAPIResponse`](https://github.com/stainless-sdks/ai-inbx-python/tree/main/src/ai_inbx/_response.py) with the same structure, the only difference being `await`able methods for reading the response content.
+The async client returns an [`AsyncAPIResponse`](https://github.com/aiinbx/aiinbx-py/tree/main/src/aiinbx/_response.py) with the same structure, the only difference being `await`able methods for reading the response content.
 
 #### `.with_streaming_response`
 
@@ -302,7 +299,7 @@ You can directly override the [httpx client](https://www.python-httpx.org/api/#c
 
 ```python
 import httpx
-from ai_inbx import AIInbx, DefaultHttpxClient
+from aiinbx import AIInbx, DefaultHttpxClient
 
 client = AIInbx(
     # Or use the `AI_INBX_BASE_URL` env var
@@ -325,7 +322,7 @@ client.with_options(http_client=DefaultHttpxClient(...))
 By default the library closes underlying HTTP connections whenever the client is [garbage collected](https://docs.python.org/3/reference/datamodel.html#object.__del__). You can manually close the client using the `.close()` method if desired, or with a context manager that closes when exiting.
 
 ```py
-from ai_inbx import AIInbx
+from aiinbx import AIInbx
 
 with AIInbx() as client:
   # make requests here
@@ -344,7 +341,7 @@ This package generally follows [SemVer](https://semver.org/spec/v2.0.0.html) con
 
 We take backwards-compatibility seriously and work hard to ensure you can rely on a smooth upgrade experience.
 
-We are keen for your feedback; please open an [issue](https://www.github.com/stainless-sdks/ai-inbx-python/issues) with questions, bugs, or suggestions.
+We are keen for your feedback; please open an [issue](https://www.github.com/aiinbx/aiinbx-py/issues) with questions, bugs, or suggestions.
 
 ### Determining the installed version
 
@@ -353,8 +350,8 @@ If you've upgraded to the latest version but aren't seeing any new features you 
 You can determine the version that is being used at runtime with:
 
 ```py
-import ai_inbx
-print(ai_inbx.__version__)
+import aiinbx
+print(aiinbx.__version__)
 ```
 
 ## Requirements

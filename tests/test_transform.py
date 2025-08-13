@@ -8,15 +8,15 @@ from typing_extensions import Required, Annotated, TypedDict
 
 import pytest
 
-from ai_inbx._types import NOT_GIVEN, Base64FileInput
-from ai_inbx._utils import (
+from aiinbx._types import NOT_GIVEN, Base64FileInput
+from aiinbx._utils import (
     PropertyInfo,
     transform as _transform,
     parse_datetime,
     async_transform as _async_transform,
 )
-from ai_inbx._compat import PYDANTIC_V2
-from ai_inbx._models import BaseModel
+from aiinbx._compat import PYDANTIC_V2
+from aiinbx._models import BaseModel
 
 _T = TypeVar("_T")
 

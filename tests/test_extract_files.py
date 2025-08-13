@@ -4,8 +4,8 @@ from typing import Sequence
 
 import pytest
 
-from ai_inbx._types import FileTypes
-from ai_inbx._utils import extract_files
+from aiinbx._types import FileTypes
+from aiinbx._utils import extract_files
 
 
 def test_removes_files_from_input() -> None:
