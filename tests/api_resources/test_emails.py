@@ -7,9 +7,9 @@ from typing import Any, cast
 
 import pytest
 
-from ai_inbx import AIInbx, AsyncAIInbx
+from aiinbx import AIInbx, AsyncAIInbx
 from tests.utils import assert_matches_type
-from ai_inbx.types import (
+from aiinbx.types import (
     EmailSendResponse,
     EmailReplyResponse,
     EmailRetrieveResponse,

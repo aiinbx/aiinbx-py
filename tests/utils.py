@@ -8,8 +8,8 @@ from typing import Any, TypeVar, Iterator, cast
 from datetime import date, datetime
 from typing_extensions import Literal, get_args, get_origin, assert_type
 
-from ai_inbx._types import Omit, NoneType
-from ai_inbx._utils import (
+from aiinbx._types import Omit, NoneType
+from aiinbx._utils import (
     is_dict,
     is_list,
     is_list_type,
@@ -18,8 +18,8 @@ from ai_inbx._utils import (
     is_annotated_type,
     is_type_alias_type,
 )
-from ai_inbx._compat import PYDANTIC_V2, field_outer_type, get_model_fields
-from ai_inbx._models import BaseModel
+from aiinbx._compat import PYDANTIC_V2, field_outer_type, get_model_fields
+from aiinbx._models import BaseModel
 
 BaseModelT = TypeVar("BaseModelT", bound=BaseModel)
 

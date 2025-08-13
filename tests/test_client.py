@@ -21,11 +21,11 @@ import pytest
 from respx import MockRouter
 from pydantic import ValidationError
 
-from ai_inbx import AIInbx, AsyncAIInbx, APIResponseValidationError
-from ai_inbx._types import Omit
-from ai_inbx._models import BaseModel, FinalRequestOptions
-from ai_inbx._exceptions import AIInbxError, APIStatusError, APITimeoutError, APIResponseValidationError
-from ai_inbx._base_client import (
+from aiinbx import AIInbx, AsyncAIInbx, APIResponseValidationError
+from aiinbx._types import Omit
+from aiinbx._models import BaseModel, FinalRequestOptions
+from aiinbx._exceptions import AIInbxError, APIStatusError, APITimeoutError, APIResponseValidationError
+from aiinbx._base_client import (
     DEFAULT_TIMEOUT,
     HTTPX_DEFAULT_TIMEOUT,
     BaseClient,
@@ -232,10 +232,10 @@ class TestAIInbx:
                         # to_raw_response_wrapper leaks through the @functools.wraps() decorator.
                         #
                         # removing the decorator fixes the leak for reasons we don't understand.
-                        "ai_inbx/_legacy_response.py",
-                        "ai_inbx/_response.py",
+                        "aiinbx/_legacy_response.py",
+                        "aiinbx/_response.py",
                         # pydantic.BaseModel.model_dump || pydantic.BaseModel.dict leak memory for some reason.
-                        "ai_inbx/_compat.py",
+                        "aiinbx/_compat.py",
                         # Standard library leaks we don't care about.
                         "/logging/__init__.py",
                     ]
@@ -709,7 +709,7 @@ class TestAIInbx:
         calculated = client._calculate_retry_timeout(remaining_retries, options, headers)
         assert calculated == pytest.approx(timeout, 0.5 * 0.875)  # pyright: ignore[reportUnknownMemberType]
 
-    @mock.patch("ai_inbx._base_client.BaseClient._calculate_retry_timeout", _low_retry_timeout)
+    @mock.patch("aiinbx._base_client.BaseClient._calculate_retry_timeout", _low_retry_timeout)
     @pytest.mark.respx(base_url=base_url)
     def test_retrying_timeout_errors_doesnt_leak(self, respx_mock: MockRouter, client: AIInbx) -> None:
         respx_mock.post("/threads/search").mock(side_effect=httpx.TimeoutException("Test timeout error"))
@@ -719,7 +719,7 @@ class TestAIInbx:
 
         assert _get_open_connections(self.client) == 0
 
-    @mock.patch("ai_inbx._base_client.BaseClient._calculate_retry_timeout", _low_retry_timeout)
+    @mock.patch("aiinbx._base_client.BaseClient._calculate_retry_timeout", _low_retry_timeout)
     @pytest.mark.respx(base_url=base_url)
     def test_retrying_status_errors_doesnt_leak(self, respx_mock: MockRouter, client: AIInbx) -> None:
         respx_mock.post("/threads/search").mock(return_value=httpx.Response(500))
@@ -729,7 +729,7 @@ class TestAIInbx:
         assert _get_open_connections(self.client) == 0
 
     @pytest.mark.parametrize("failures_before_success", [0, 2, 4])
-    @mock.patch("ai_inbx._base_client.BaseClient._calculate_retry_timeout", _low_retry_timeout)
+    @mock.patch("aiinbx._base_client.BaseClient._calculate_retry_timeout", _low_retry_timeout)
     @pytest.mark.respx(base_url=base_url)
     @pytest.mark.parametrize("failure_mode", ["status", "exception"])
     def test_retries_taken(
@@ -760,7 +760,7 @@ class TestAIInbx:
         assert int(response.http_request.headers.get("x-stainless-retry-count")) == failures_before_success
 
     @pytest.mark.parametrize("failures_before_success", [0, 2, 4])
-    @mock.patch("ai_inbx._base_client.BaseClient._calculate_retry_timeout", _low_retry_timeout)
+    @mock.patch("aiinbx._base_client.BaseClient._calculate_retry_timeout", _low_retry_timeout)
     @pytest.mark.respx(base_url=base_url)
     def test_omit_retry_count_header(
         self, client: AIInbx, failures_before_success: int, respx_mock: MockRouter
@@ -783,7 +783,7 @@ class TestAIInbx:
         assert len(response.http_request.headers.get_list("x-stainless-retry-count")) == 0
 
     @pytest.mark.parametrize("failures_before_success", [0, 2, 4])
-    @mock.patch("ai_inbx._base_client.BaseClient._calculate_retry_timeout", _low_retry_timeout)
+    @mock.patch("aiinbx._base_client.BaseClient._calculate_retry_timeout", _low_retry_timeout)
     @pytest.mark.respx(base_url=base_url)
     def test_overwrite_retry_count_header(
         self, client: AIInbx, failures_before_success: int, respx_mock: MockRouter
@@ -1031,10 +1031,10 @@ class TestAsyncAIInbx:
                         # to_raw_response_wrapper leaks through the @functools.wraps() decorator.
                         #
                         # removing the decorator fixes the leak for reasons we don't understand.
-                        "ai_inbx/_legacy_response.py",
-                        "ai_inbx/_response.py",
+                        "aiinbx/_legacy_response.py",
+                        "aiinbx/_response.py",
                         # pydantic.BaseModel.model_dump || pydantic.BaseModel.dict leak memory for some reason.
-                        "ai_inbx/_compat.py",
+                        "aiinbx/_compat.py",
                         # Standard library leaks we don't care about.
                         "/logging/__init__.py",
                     ]
@@ -1524,7 +1524,7 @@ class TestAsyncAIInbx:
         calculated = client._calculate_retry_timeout(remaining_retries, options, headers)
         assert calculated == pytest.approx(timeout, 0.5 * 0.875)  # pyright: ignore[reportUnknownMemberType]
 
-    @mock.patch("ai_inbx._base_client.BaseClient._calculate_retry_timeout", _low_retry_timeout)
+    @mock.patch("aiinbx._base_client.BaseClient._calculate_retry_timeout", _low_retry_timeout)
     @pytest.mark.respx(base_url=base_url)
     async def test_retrying_timeout_errors_doesnt_leak(self, respx_mock: MockRouter, async_client: AsyncAIInbx) -> None:
         respx_mock.post("/threads/search").mock(side_effect=httpx.TimeoutException("Test timeout error"))
@@ -1534,7 +1534,7 @@ class TestAsyncAIInbx:
 
         assert _get_open_connections(self.client) == 0
 
-    @mock.patch("ai_inbx._base_client.BaseClient._calculate_retry_timeout", _low_retry_timeout)
+    @mock.patch("aiinbx._base_client.BaseClient._calculate_retry_timeout", _low_retry_timeout)
     @pytest.mark.respx(base_url=base_url)
     async def test_retrying_status_errors_doesnt_leak(self, respx_mock: MockRouter, async_client: AsyncAIInbx) -> None:
         respx_mock.post("/threads/search").mock(return_value=httpx.Response(500))
@@ -1544,7 +1544,7 @@ class TestAsyncAIInbx:
         assert _get_open_connections(self.client) == 0
 
     @pytest.mark.parametrize("failures_before_success", [0, 2, 4])
-    @mock.patch("ai_inbx._base_client.BaseClient._calculate_retry_timeout", _low_retry_timeout)
+    @mock.patch("aiinbx._base_client.BaseClient._calculate_retry_timeout", _low_retry_timeout)
     @pytest.mark.respx(base_url=base_url)
     @pytest.mark.asyncio
     @pytest.mark.parametrize("failure_mode", ["status", "exception"])
@@ -1576,7 +1576,7 @@ class TestAsyncAIInbx:
         assert int(response.http_request.headers.get("x-stainless-retry-count")) == failures_before_success
 
     @pytest.mark.parametrize("failures_before_success", [0, 2, 4])
-    @mock.patch("ai_inbx._base_client.BaseClient._calculate_retry_timeout", _low_retry_timeout)
+    @mock.patch("aiinbx._base_client.BaseClient._calculate_retry_timeout", _low_retry_timeout)
     @pytest.mark.respx(base_url=base_url)
     @pytest.mark.asyncio
     async def test_omit_retry_count_header(
@@ -1600,7 +1600,7 @@ class TestAsyncAIInbx:
         assert len(response.http_request.headers.get_list("x-stainless-retry-count")) == 0
 
     @pytest.mark.parametrize("failures_before_success", [0, 2, 4])
-    @mock.patch("ai_inbx._base_client.BaseClient._calculate_retry_timeout", _low_retry_timeout)
+    @mock.patch("aiinbx._base_client.BaseClient._calculate_retry_timeout", _low_retry_timeout)
     @pytest.mark.respx(base_url=base_url)
     @pytest.mark.asyncio
     async def test_overwrite_retry_count_header(
@@ -1634,8 +1634,8 @@ class TestAsyncAIInbx:
         import nest_asyncio
         import threading
 
-        from ai_inbx._utils import asyncify
-        from ai_inbx._base_client import get_platform
+        from aiinbx._utils import asyncify
+        from aiinbx._base_client import get_platform
 
         async def test_main() -> None:
             result = await asyncify(get_platform)()
