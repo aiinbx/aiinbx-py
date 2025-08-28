@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from typing import List
+from typing import List, Union
 from typing_extensions import Literal
 
 import httpx
 
-from ..types import thread_search_params
+from ..types import thread_search_params, thread_forward_params
 from .._types import NOT_GIVEN, Body, Query, Headers, NotGiven
 from .._utils import maybe_transform, async_maybe_transform
 from .._compat import cached_property
@@ -20,6 +20,7 @@ from .._response import (
 )
 from .._base_client import make_request_options
 from ..types.thread_search_response import ThreadSearchResponse
+from ..types.thread_forward_response import ThreadForwardResponse
 from ..types.thread_retrieve_response import ThreadRetrieveResponse
 
 __all__ = ["ThreadsResource", "AsyncThreadsResource"]
@@ -77,6 +78,62 @@ class ThreadsResource(SyncAPIResource):
                 extra_headers=extra_headers, extra_query=extra_query, extra_body=extra_body, timeout=timeout
             ),
             cast_to=ThreadRetrieveResponse,
+        )
+
+    def forward(
+        self,
+        thread_id: str,
+        *,
+        to: Union[str, List[str]],
+        bcc: Union[str, List[str]] | NotGiven = NOT_GIVEN,
+        cc: Union[str, List[str]] | NotGiven = NOT_GIVEN,
+        from_: str | NotGiven = NOT_GIVEN,
+        from_name: str | NotGiven = NOT_GIVEN,
+        include_attachments: bool | NotGiven = NOT_GIVEN,
+        is_draft: bool | NotGiven = NOT_GIVEN,
+        note: str | NotGiven = NOT_GIVEN,
+        # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
+        # The extra values given here take precedence over values defined on the client or passed to this method.
+        extra_headers: Headers | None = None,
+        extra_query: Query | None = None,
+        extra_body: Body | None = None,
+        timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
+    ) -> ThreadForwardResponse:
+        """Forward the entire thread as a readable transcript.
+
+        Attachments are included as
+        secure links by default.
+
+        Args:
+          extra_headers: Send extra headers
+
+          extra_query: Add additional query parameters to the request
+
+          extra_body: Add additional JSON properties to the request
+
+          timeout: Override the client-level default timeout for this request, in seconds
+        """
+        if not thread_id:
+            raise ValueError(f"Expected a non-empty value for `thread_id` but received {thread_id!r}")
+        return self._post(
+            f"/threads/{thread_id}/forward",
+            body=maybe_transform(
+                {
+                    "to": to,
+                    "bcc": bcc,
+                    "cc": cc,
+                    "from_": from_,
+                    "from_name": from_name,
+                    "include_attachments": include_attachments,
+                    "is_draft": is_draft,
+                    "note": note,
+                },
+                thread_forward_params.ThreadForwardParams,
+            ),
+            options=make_request_options(
+                extra_headers=extra_headers, extra_query=extra_query, extra_body=extra_body, timeout=timeout
+            ),
+            cast_to=ThreadForwardResponse,
         )
 
     def search(
@@ -214,6 +271,62 @@ class AsyncThreadsResource(AsyncAPIResource):
             cast_to=ThreadRetrieveResponse,
         )
 
+    async def forward(
+        self,
+        thread_id: str,
+        *,
+        to: Union[str, List[str]],
+        bcc: Union[str, List[str]] | NotGiven = NOT_GIVEN,
+        cc: Union[str, List[str]] | NotGiven = NOT_GIVEN,
+        from_: str | NotGiven = NOT_GIVEN,
+        from_name: str | NotGiven = NOT_GIVEN,
+        include_attachments: bool | NotGiven = NOT_GIVEN,
+        is_draft: bool | NotGiven = NOT_GIVEN,
+        note: str | NotGiven = NOT_GIVEN,
+        # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
+        # The extra values given here take precedence over values defined on the client or passed to this method.
+        extra_headers: Headers | None = None,
+        extra_query: Query | None = None,
+        extra_body: Body | None = None,
+        timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
+    ) -> ThreadForwardResponse:
+        """Forward the entire thread as a readable transcript.
+
+        Attachments are included as
+        secure links by default.
+
+        Args:
+          extra_headers: Send extra headers
+
+          extra_query: Add additional query parameters to the request
+
+          extra_body: Add additional JSON properties to the request
+
+          timeout: Override the client-level default timeout for this request, in seconds
+        """
+        if not thread_id:
+            raise ValueError(f"Expected a non-empty value for `thread_id` but received {thread_id!r}")
+        return await self._post(
+            f"/threads/{thread_id}/forward",
+            body=await async_maybe_transform(
+                {
+                    "to": to,
+                    "bcc": bcc,
+                    "cc": cc,
+                    "from_": from_,
+                    "from_name": from_name,
+                    "include_attachments": include_attachments,
+                    "is_draft": is_draft,
+                    "note": note,
+                },
+                thread_forward_params.ThreadForwardParams,
+            ),
+            options=make_request_options(
+                extra_headers=extra_headers, extra_query=extra_query, extra_body=extra_body, timeout=timeout
+            ),
+            cast_to=ThreadForwardResponse,
+        )
+
     async def search(
         self,
         *,
@@ -302,6 +415,9 @@ class ThreadsResourceWithRawResponse:
         self.retrieve = to_raw_response_wrapper(
             threads.retrieve,
         )
+        self.forward = to_raw_response_wrapper(
+            threads.forward,
+        )
         self.search = to_raw_response_wrapper(
             threads.search,
         )
@@ -313,6 +429,9 @@ class AsyncThreadsResourceWithRawResponse:
 
         self.retrieve = async_to_raw_response_wrapper(
             threads.retrieve,
+        )
+        self.forward = async_to_raw_response_wrapper(
+            threads.forward,
         )
         self.search = async_to_raw_response_wrapper(
             threads.search,
@@ -326,6 +445,9 @@ class ThreadsResourceWithStreamingResponse:
         self.retrieve = to_streamed_response_wrapper(
             threads.retrieve,
         )
+        self.forward = to_streamed_response_wrapper(
+            threads.forward,
+        )
         self.search = to_streamed_response_wrapper(
             threads.search,
         )
@@ -337,6 +459,9 @@ class AsyncThreadsResourceWithStreamingResponse:
 
         self.retrieve = async_to_streamed_response_wrapper(
             threads.retrieve,
+        )
+        self.forward = async_to_streamed_response_wrapper(
+            threads.forward,
         )
         self.search = async_to_streamed_response_wrapper(
             threads.search,

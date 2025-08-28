@@ -9,7 +9,11 @@ import pytest
 
 from aiinbx import AIInbx, AsyncAIInbx
 from tests.utils import assert_matches_type
-from aiinbx.types import ThreadSearchResponse, ThreadRetrieveResponse
+from aiinbx.types import (
+    ThreadSearchResponse,
+    ThreadForwardResponse,
+    ThreadRetrieveResponse,
+)
 
 base_url = os.environ.get("TEST_API_BASE_URL", "http://127.0.0.1:4010")
 
@@ -57,6 +61,68 @@ class TestThreads:
         with pytest.raises(ValueError, match=r"Expected a non-empty value for `thread_id` but received ''"):
             client.threads.with_raw_response.retrieve(
                 "",
+            )
+
+    @pytest.mark.skip(reason="Prism tests are disabled")
+    @parametrize
+    def test_method_forward(self, client: AIInbx) -> None:
+        thread = client.threads.forward(
+            thread_id="threadId",
+            to="dev@stainless.com",
+        )
+        assert_matches_type(ThreadForwardResponse, thread, path=["response"])
+
+    @pytest.mark.skip(reason="Prism tests are disabled")
+    @parametrize
+    def test_method_forward_with_all_params(self, client: AIInbx) -> None:
+        thread = client.threads.forward(
+            thread_id="threadId",
+            to="dev@stainless.com",
+            bcc="dev@stainless.com",
+            cc="dev@stainless.com",
+            from_="dev@stainless.com",
+            from_name="from_name",
+            include_attachments=True,
+            is_draft=True,
+            note="note",
+        )
+        assert_matches_type(ThreadForwardResponse, thread, path=["response"])
+
+    @pytest.mark.skip(reason="Prism tests are disabled")
+    @parametrize
+    def test_raw_response_forward(self, client: AIInbx) -> None:
+        response = client.threads.with_raw_response.forward(
+            thread_id="threadId",
+            to="dev@stainless.com",
+        )
+
+        assert response.is_closed is True
+        assert response.http_request.headers.get("X-Stainless-Lang") == "python"
+        thread = response.parse()
+        assert_matches_type(ThreadForwardResponse, thread, path=["response"])
+
+    @pytest.mark.skip(reason="Prism tests are disabled")
+    @parametrize
+    def test_streaming_response_forward(self, client: AIInbx) -> None:
+        with client.threads.with_streaming_response.forward(
+            thread_id="threadId",
+            to="dev@stainless.com",
+        ) as response:
+            assert not response.is_closed
+            assert response.http_request.headers.get("X-Stainless-Lang") == "python"
+
+            thread = response.parse()
+            assert_matches_type(ThreadForwardResponse, thread, path=["response"])
+
+        assert cast(Any, response.is_closed) is True
+
+    @pytest.mark.skip(reason="Prism tests are disabled")
+    @parametrize
+    def test_path_params_forward(self, client: AIInbx) -> None:
+        with pytest.raises(ValueError, match=r"Expected a non-empty value for `thread_id` but received ''"):
+            client.threads.with_raw_response.forward(
+                thread_id="",
+                to="dev@stainless.com",
             )
 
     @pytest.mark.skip(reason="Prism tests are disabled")
@@ -156,6 +222,68 @@ class TestAsyncThreads:
         with pytest.raises(ValueError, match=r"Expected a non-empty value for `thread_id` but received ''"):
             await async_client.threads.with_raw_response.retrieve(
                 "",
+            )
+
+    @pytest.mark.skip(reason="Prism tests are disabled")
+    @parametrize
+    async def test_method_forward(self, async_client: AsyncAIInbx) -> None:
+        thread = await async_client.threads.forward(
+            thread_id="threadId",
+            to="dev@stainless.com",
+        )
+        assert_matches_type(ThreadForwardResponse, thread, path=["response"])
+
+    @pytest.mark.skip(reason="Prism tests are disabled")
+    @parametrize
+    async def test_method_forward_with_all_params(self, async_client: AsyncAIInbx) -> None:
+        thread = await async_client.threads.forward(
+            thread_id="threadId",
+            to="dev@stainless.com",
+            bcc="dev@stainless.com",
+            cc="dev@stainless.com",
+            from_="dev@stainless.com",
+            from_name="from_name",
+            include_attachments=True,
+            is_draft=True,
+            note="note",
+        )
+        assert_matches_type(ThreadForwardResponse, thread, path=["response"])
+
+    @pytest.mark.skip(reason="Prism tests are disabled")
+    @parametrize
+    async def test_raw_response_forward(self, async_client: AsyncAIInbx) -> None:
+        response = await async_client.threads.with_raw_response.forward(
+            thread_id="threadId",
+            to="dev@stainless.com",
+        )
+
+        assert response.is_closed is True
+        assert response.http_request.headers.get("X-Stainless-Lang") == "python"
+        thread = await response.parse()
+        assert_matches_type(ThreadForwardResponse, thread, path=["response"])
+
+    @pytest.mark.skip(reason="Prism tests are disabled")
+    @parametrize
+    async def test_streaming_response_forward(self, async_client: AsyncAIInbx) -> None:
+        async with async_client.threads.with_streaming_response.forward(
+            thread_id="threadId",
+            to="dev@stainless.com",
+        ) as response:
+            assert not response.is_closed
+            assert response.http_request.headers.get("X-Stainless-Lang") == "python"
+
+            thread = await response.parse()
+            assert_matches_type(ThreadForwardResponse, thread, path=["response"])
+
+        assert cast(Any, response.is_closed) is True
+
+    @pytest.mark.skip(reason="Prism tests are disabled")
+    @parametrize
+    async def test_path_params_forward(self, async_client: AsyncAIInbx) -> None:
+        with pytest.raises(ValueError, match=r"Expected a non-empty value for `thread_id` but received ''"):
+            await async_client.threads.with_raw_response.forward(
+                thread_id="",
+                to="dev@stainless.com",
             )
 
     @pytest.mark.skip(reason="Prism tests are disabled")
