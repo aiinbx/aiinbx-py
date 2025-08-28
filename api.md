@@ -3,12 +3,13 @@
 Types:
 
 ```python
-from aiinbx.types import ThreadRetrieveResponse, ThreadSearchResponse
+from aiinbx.types import ThreadRetrieveResponse, ThreadForwardResponse, ThreadSearchResponse
 ```
 
 Methods:
 
 - <code title="get /threads/{threadId}">client.threads.<a href="./src/aiinbx/resources/threads.py">retrieve</a>(thread_id) -> <a href="./src/aiinbx/types/thread_retrieve_response.py">ThreadRetrieveResponse</a></code>
+- <code title="post /threads/{threadId}/forward">client.threads.<a href="./src/aiinbx/resources/threads.py">forward</a>(thread_id, \*\*<a href="src/aiinbx/types/thread_forward_params.py">params</a>) -> <a href="./src/aiinbx/types/thread_forward_response.py">ThreadForwardResponse</a></code>
 - <code title="post /threads/search">client.threads.<a href="./src/aiinbx/resources/threads.py">search</a>(\*\*<a href="src/aiinbx/types/thread_search_params.py">params</a>) -> <a href="./src/aiinbx/types/thread_search_response.py">ThreadSearchResponse</a></code>
 
 # Emails
