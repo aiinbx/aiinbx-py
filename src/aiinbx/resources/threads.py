@@ -99,10 +99,8 @@ class ThreadsResource(SyncAPIResource):
         extra_body: Body | None = None,
         timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
     ) -> ThreadForwardResponse:
-        """Forward the entire thread as a readable transcript.
-
-        Attachments are included as
-        secure links by default.
+        """
+        Forward the entire thread as a readable transcript.
 
         Args:
           extra_headers: Send extra headers
@@ -290,10 +288,8 @@ class AsyncThreadsResource(AsyncAPIResource):
         extra_body: Body | None = None,
         timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
     ) -> ThreadForwardResponse:
-        """Forward the entire thread as a readable transcript.
-
-        Attachments are included as
-        secure links by default.
+        """
+        Forward the entire thread as a readable transcript.
 
         Args:
           extra_headers: Send extra headers
