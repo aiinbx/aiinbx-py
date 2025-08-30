@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.1 (2025-08-30)
+
+Full Changelog: [v0.3.0...v0.3.1](https://github.com/aiinbx/aiinbx-py/compare/v0.3.0...v0.3.1)
+
+### Chores
+
+* **internal:** add Sequence related utils ([879c21a](https://github.com/aiinbx/aiinbx-py/commit/879c21ac262c2c10c0e1bfa03d5d1c40470f889b))
+
 ## 0.3.0 (2025-08-28)
 
 Full Changelog: [v0.2.0...v0.3.0](https://github.com/aiinbx/aiinbx-py/compare/v0.2.0...v0.3.0)
