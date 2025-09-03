@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from typing import List, Union
+from typing import Union
 
 import httpx
 
 from ..types import email_send_params, email_reply_params
-from .._types import NOT_GIVEN, Body, Query, Headers, NotGiven
+from .._types import NOT_GIVEN, Body, Query, Headers, NotGiven, SequenceNotStr
 from .._utils import maybe_transform, async_maybe_transform
 from .._compat import cached_property
 from .._resource import SyncAPIResource, AsyncAPIResource
@@ -84,14 +84,14 @@ class EmailsResource(SyncAPIResource):
         *,
         from_: str,
         html: str,
-        bcc: Union[str, List[str]] | NotGiven = NOT_GIVEN,
-        cc: Union[str, List[str]] | NotGiven = NOT_GIVEN,
+        bcc: Union[str, SequenceNotStr[str]] | NotGiven = NOT_GIVEN,
+        cc: Union[str, SequenceNotStr[str]] | NotGiven = NOT_GIVEN,
         from_name: str | NotGiven = NOT_GIVEN,
         is_draft: bool | NotGiven = NOT_GIVEN,
         reply_all: bool | NotGiven = NOT_GIVEN,
         subject: str | NotGiven = NOT_GIVEN,
         text: str | NotGiven = NOT_GIVEN,
-        to: Union[str, List[str]] | NotGiven = NOT_GIVEN,
+        to: Union[str, SequenceNotStr[str]] | NotGiven = NOT_GIVEN,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
@@ -145,14 +145,14 @@ class EmailsResource(SyncAPIResource):
         from_: str,
         html: str,
         subject: str,
-        to: Union[str, List[str]],
-        bcc: Union[str, List[str]] | NotGiven = NOT_GIVEN,
-        cc: Union[str, List[str]] | NotGiven = NOT_GIVEN,
+        to: Union[str, SequenceNotStr[str]],
+        bcc: Union[str, SequenceNotStr[str]] | NotGiven = NOT_GIVEN,
+        cc: Union[str, SequenceNotStr[str]] | NotGiven = NOT_GIVEN,
         from_name: str | NotGiven = NOT_GIVEN,
         in_reply_to: str | NotGiven = NOT_GIVEN,
         is_draft: bool | NotGiven = NOT_GIVEN,
-        references: List[str] | NotGiven = NOT_GIVEN,
-        reply_to: Union[str, List[str]] | NotGiven = NOT_GIVEN,
+        references: SequenceNotStr[str] | NotGiven = NOT_GIVEN,
+        reply_to: Union[str, SequenceNotStr[str]] | NotGiven = NOT_GIVEN,
         text: str | NotGiven = NOT_GIVEN,
         thread_id: str | NotGiven = NOT_GIVEN,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
@@ -263,14 +263,14 @@ class AsyncEmailsResource(AsyncAPIResource):
         *,
         from_: str,
         html: str,
-        bcc: Union[str, List[str]] | NotGiven = NOT_GIVEN,
-        cc: Union[str, List[str]] | NotGiven = NOT_GIVEN,
+        bcc: Union[str, SequenceNotStr[str]] | NotGiven = NOT_GIVEN,
+        cc: Union[str, SequenceNotStr[str]] | NotGiven = NOT_GIVEN,
         from_name: str | NotGiven = NOT_GIVEN,
         is_draft: bool | NotGiven = NOT_GIVEN,
         reply_all: bool | NotGiven = NOT_GIVEN,
         subject: str | NotGiven = NOT_GIVEN,
         text: str | NotGiven = NOT_GIVEN,
-        to: Union[str, List[str]] | NotGiven = NOT_GIVEN,
+        to: Union[str, SequenceNotStr[str]] | NotGiven = NOT_GIVEN,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
@@ -324,14 +324,14 @@ class AsyncEmailsResource(AsyncAPIResource):
         from_: str,
         html: str,
         subject: str,
-        to: Union[str, List[str]],
-        bcc: Union[str, List[str]] | NotGiven = NOT_GIVEN,
-        cc: Union[str, List[str]] | NotGiven = NOT_GIVEN,
+        to: Union[str, SequenceNotStr[str]],
+        bcc: Union[str, SequenceNotStr[str]] | NotGiven = NOT_GIVEN,
+        cc: Union[str, SequenceNotStr[str]] | NotGiven = NOT_GIVEN,
         from_name: str | NotGiven = NOT_GIVEN,
         in_reply_to: str | NotGiven = NOT_GIVEN,
         is_draft: bool | NotGiven = NOT_GIVEN,
-        references: List[str] | NotGiven = NOT_GIVEN,
-        reply_to: Union[str, List[str]] | NotGiven = NOT_GIVEN,
+        references: SequenceNotStr[str] | NotGiven = NOT_GIVEN,
+        reply_to: Union[str, SequenceNotStr[str]] | NotGiven = NOT_GIVEN,
         text: str | NotGiven = NOT_GIVEN,
         thread_id: str | NotGiven = NOT_GIVEN,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
