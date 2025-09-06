@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.4.0 (2025-09-06)
+
+Full Changelog: [v0.3.0...v0.4.0](https://github.com/aiinbx/aiinbx-py/compare/v0.3.0...v0.4.0)
+
+### Features
+
+* improve future compat with pydantic v3 ([dcc1c80](https://github.com/aiinbx/aiinbx-py/commit/dcc1c804ec998e7948395f7c1ea3aac371a539fb))
+* **types:** replace List[str] with SequenceNotStr in params ([a31a999](https://github.com/aiinbx/aiinbx-py/commit/a31a999a8dd553a067fdd4368d147f773418dc02))
+
+
+### Chores
+
+* **internal:** add Sequence related utils ([879c21a](https://github.com/aiinbx/aiinbx-py/commit/879c21ac262c2c10c0e1bfa03d5d1c40470f889b))
+* **internal:** move mypy configurations to `pyproject.toml` file ([3108a79](https://github.com/aiinbx/aiinbx-py/commit/3108a794e35f868d1e21a210abbda837eecc64d1))
+* **tests:** simplify `get_platform` test ([0f14d8c](https://github.com/aiinbx/aiinbx-py/commit/0f14d8cd43342f3fda7ccda30717c01d20679593))
+
 ## 0.3.0 (2025-08-28)
 
 Full Changelog: [v0.2.0...v0.3.0](https://github.com/aiinbx/aiinbx-py/compare/v0.2.0...v0.3.0)
