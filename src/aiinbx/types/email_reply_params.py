@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from typing import List, Union
+from typing import Union
 from typing_extensions import Required, Annotated, TypedDict
 
+from .._types import SequenceNotStr
 from .._utils import PropertyInfo
 
 __all__ = ["EmailReplyParams"]
@@ -15,9 +16,9 @@ class EmailReplyParams(TypedDict, total=False):
 
     html: Required[str]
 
-    bcc: Union[str, List[str]]
+    bcc: Union[str, SequenceNotStr[str]]
 
-    cc: Union[str, List[str]]
+    cc: Union[str, SequenceNotStr[str]]
 
     from_name: str
 
@@ -29,4 +30,4 @@ class EmailReplyParams(TypedDict, total=False):
 
     text: str
 
-    to: Union[str, List[str]]
+    to: Union[str, SequenceNotStr[str]]

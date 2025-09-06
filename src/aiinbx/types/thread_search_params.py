@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from typing import List
 from typing_extensions import Literal, Annotated, TypedDict
 
+from .._types import SequenceNotStr
 from .._utils import PropertyInfo
 
 __all__ = ["ThreadSearchParams"]
@@ -23,7 +23,7 @@ class ThreadSearchParams(TypedDict, total=False):
 
     has_email_to_address: Annotated[str, PropertyInfo(alias="hasEmailToAddress")]
 
-    has_participant_emails: Annotated[List[str], PropertyInfo(alias="hasParticipantEmails")]
+    has_participant_emails: Annotated[SequenceNotStr[str], PropertyInfo(alias="hasParticipantEmails")]
 
     last_email_after: Annotated[str, PropertyInfo(alias="lastEmailAfter")]
 
