@@ -7,7 +7,7 @@ from typing import Union
 import httpx
 
 from ..types import email_send_params, email_reply_params
-from .._types import NOT_GIVEN, Body, Query, Headers, NotGiven, SequenceNotStr
+from .._types import Body, Omit, Query, Headers, NotGiven, SequenceNotStr, omit, not_given
 from .._utils import maybe_transform, async_maybe_transform
 from .._compat import cached_property
 from .._resource import SyncAPIResource, AsyncAPIResource
@@ -54,7 +54,7 @@ class EmailsResource(SyncAPIResource):
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
+        timeout: float | httpx.Timeout | None | NotGiven = not_given,
     ) -> EmailRetrieveResponse:
         """
         Retrieve a specific email by its ID using API key authentication
@@ -84,20 +84,20 @@ class EmailsResource(SyncAPIResource):
         *,
         from_: str,
         html: str,
-        bcc: Union[str, SequenceNotStr[str]] | NotGiven = NOT_GIVEN,
-        cc: Union[str, SequenceNotStr[str]] | NotGiven = NOT_GIVEN,
-        from_name: str | NotGiven = NOT_GIVEN,
-        is_draft: bool | NotGiven = NOT_GIVEN,
-        reply_all: bool | NotGiven = NOT_GIVEN,
-        subject: str | NotGiven = NOT_GIVEN,
-        text: str | NotGiven = NOT_GIVEN,
-        to: Union[str, SequenceNotStr[str]] | NotGiven = NOT_GIVEN,
+        bcc: Union[str, SequenceNotStr[str]] | Omit = omit,
+        cc: Union[str, SequenceNotStr[str]] | Omit = omit,
+        from_name: str | Omit = omit,
+        is_draft: bool | Omit = omit,
+        reply_all: bool | Omit = omit,
+        subject: str | Omit = omit,
+        text: str | Omit = omit,
+        to: Union[str, SequenceNotStr[str]] | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
+        timeout: float | httpx.Timeout | None | NotGiven = not_given,
     ) -> EmailReplyResponse:
         """Reply to an existing email.
 
@@ -146,21 +146,21 @@ class EmailsResource(SyncAPIResource):
         html: str,
         subject: str,
         to: Union[str, SequenceNotStr[str]],
-        bcc: Union[str, SequenceNotStr[str]] | NotGiven = NOT_GIVEN,
-        cc: Union[str, SequenceNotStr[str]] | NotGiven = NOT_GIVEN,
-        from_name: str | NotGiven = NOT_GIVEN,
-        in_reply_to: str | NotGiven = NOT_GIVEN,
-        is_draft: bool | NotGiven = NOT_GIVEN,
-        references: SequenceNotStr[str] | NotGiven = NOT_GIVEN,
-        reply_to: Union[str, SequenceNotStr[str]] | NotGiven = NOT_GIVEN,
-        text: str | NotGiven = NOT_GIVEN,
-        thread_id: str | NotGiven = NOT_GIVEN,
+        bcc: Union[str, SequenceNotStr[str]] | Omit = omit,
+        cc: Union[str, SequenceNotStr[str]] | Omit = omit,
+        from_name: str | Omit = omit,
+        in_reply_to: str | Omit = omit,
+        is_draft: bool | Omit = omit,
+        references: SequenceNotStr[str] | Omit = omit,
+        reply_to: Union[str, SequenceNotStr[str]] | Omit = omit,
+        text: str | Omit = omit,
+        thread_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
+        timeout: float | httpx.Timeout | None | NotGiven = not_given,
     ) -> EmailSendResponse:
         """Send an email from a verified domain belonging to the organization.
 
@@ -233,7 +233,7 @@ class AsyncEmailsResource(AsyncAPIResource):
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
+        timeout: float | httpx.Timeout | None | NotGiven = not_given,
     ) -> EmailRetrieveResponse:
         """
         Retrieve a specific email by its ID using API key authentication
@@ -263,20 +263,20 @@ class AsyncEmailsResource(AsyncAPIResource):
         *,
         from_: str,
         html: str,
-        bcc: Union[str, SequenceNotStr[str]] | NotGiven = NOT_GIVEN,
-        cc: Union[str, SequenceNotStr[str]] | NotGiven = NOT_GIVEN,
-        from_name: str | NotGiven = NOT_GIVEN,
-        is_draft: bool | NotGiven = NOT_GIVEN,
-        reply_all: bool | NotGiven = NOT_GIVEN,
-        subject: str | NotGiven = NOT_GIVEN,
-        text: str | NotGiven = NOT_GIVEN,
-        to: Union[str, SequenceNotStr[str]] | NotGiven = NOT_GIVEN,
+        bcc: Union[str, SequenceNotStr[str]] | Omit = omit,
+        cc: Union[str, SequenceNotStr[str]] | Omit = omit,
+        from_name: str | Omit = omit,
+        is_draft: bool | Omit = omit,
+        reply_all: bool | Omit = omit,
+        subject: str | Omit = omit,
+        text: str | Omit = omit,
+        to: Union[str, SequenceNotStr[str]] | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
+        timeout: float | httpx.Timeout | None | NotGiven = not_given,
     ) -> EmailReplyResponse:
         """Reply to an existing email.
 
@@ -325,21 +325,21 @@ class AsyncEmailsResource(AsyncAPIResource):
         html: str,
         subject: str,
         to: Union[str, SequenceNotStr[str]],
-        bcc: Union[str, SequenceNotStr[str]] | NotGiven = NOT_GIVEN,
-        cc: Union[str, SequenceNotStr[str]] | NotGiven = NOT_GIVEN,
-        from_name: str | NotGiven = NOT_GIVEN,
-        in_reply_to: str | NotGiven = NOT_GIVEN,
-        is_draft: bool | NotGiven = NOT_GIVEN,
-        references: SequenceNotStr[str] | NotGiven = NOT_GIVEN,
-        reply_to: Union[str, SequenceNotStr[str]] | NotGiven = NOT_GIVEN,
-        text: str | NotGiven = NOT_GIVEN,
-        thread_id: str | NotGiven = NOT_GIVEN,
+        bcc: Union[str, SequenceNotStr[str]] | Omit = omit,
+        cc: Union[str, SequenceNotStr[str]] | Omit = omit,
+        from_name: str | Omit = omit,
+        in_reply_to: str | Omit = omit,
+        is_draft: bool | Omit = omit,
+        references: SequenceNotStr[str] | Omit = omit,
+        reply_to: Union[str, SequenceNotStr[str]] | Omit = omit,
+        text: str | Omit = omit,
+        thread_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
+        timeout: float | httpx.Timeout | None | NotGiven = not_given,
     ) -> EmailSendResponse:
         """Send an email from a verified domain belonging to the organization.
 
