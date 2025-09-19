@@ -8,7 +8,7 @@ from typing_extensions import Literal
 import httpx
 
 from ..types import thread_search_params, thread_forward_params
-from .._types import NOT_GIVEN, Body, Query, Headers, NotGiven, SequenceNotStr
+from .._types import Body, Omit, Query, Headers, NotGiven, SequenceNotStr, omit, not_given
 from .._utils import maybe_transform, async_maybe_transform
 from .._compat import cached_property
 from .._resource import SyncAPIResource, AsyncAPIResource
@@ -55,7 +55,7 @@ class ThreadsResource(SyncAPIResource):
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
+        timeout: float | httpx.Timeout | None | NotGiven = not_given,
     ) -> ThreadRetrieveResponse:
         """
         Retrieve a specific thread with all its emails by thread ID using API key
@@ -85,19 +85,19 @@ class ThreadsResource(SyncAPIResource):
         thread_id: str,
         *,
         to: Union[str, SequenceNotStr[str]],
-        bcc: Union[str, SequenceNotStr[str]] | NotGiven = NOT_GIVEN,
-        cc: Union[str, SequenceNotStr[str]] | NotGiven = NOT_GIVEN,
-        from_: str | NotGiven = NOT_GIVEN,
-        from_name: str | NotGiven = NOT_GIVEN,
-        include_attachments: bool | NotGiven = NOT_GIVEN,
-        is_draft: bool | NotGiven = NOT_GIVEN,
-        note: str | NotGiven = NOT_GIVEN,
+        bcc: Union[str, SequenceNotStr[str]] | Omit = omit,
+        cc: Union[str, SequenceNotStr[str]] | Omit = omit,
+        from_: str | Omit = omit,
+        from_name: str | Omit = omit,
+        include_attachments: bool | Omit = omit,
+        is_draft: bool | Omit = omit,
+        note: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
+        timeout: float | httpx.Timeout | None | NotGiven = not_given,
     ) -> ThreadForwardResponse:
         """
         Forward the entire thread as a readable transcript.
@@ -137,17 +137,17 @@ class ThreadsResource(SyncAPIResource):
     def search(
         self,
         *,
-        conversation_state: Literal["awaiting_reply", "needs_reply", "active", "stale"] | NotGiven = NOT_GIVEN,
-        created_after: str | NotGiven = NOT_GIVEN,
-        created_before: str | NotGiven = NOT_GIVEN,
-        has_email_from_address: str | NotGiven = NOT_GIVEN,
-        has_email_to_address: str | NotGiven = NOT_GIVEN,
-        has_participant_emails: SequenceNotStr[str] | NotGiven = NOT_GIVEN,
-        last_email_after: str | NotGiven = NOT_GIVEN,
-        last_email_before: str | NotGiven = NOT_GIVEN,
-        limit: float | NotGiven = NOT_GIVEN,
-        offset: float | NotGiven = NOT_GIVEN,
-        some_email_has_direction: Literal["INBOUND", "OUTBOUND"] | NotGiven = NOT_GIVEN,
+        conversation_state: Literal["awaiting_reply", "needs_reply", "active", "stale"] | Omit = omit,
+        created_after: str | Omit = omit,
+        created_before: str | Omit = omit,
+        has_email_from_address: str | Omit = omit,
+        has_email_to_address: str | Omit = omit,
+        has_participant_emails: SequenceNotStr[str] | Omit = omit,
+        last_email_after: str | Omit = omit,
+        last_email_before: str | Omit = omit,
+        limit: float | Omit = omit,
+        offset: float | Omit = omit,
+        some_email_has_direction: Literal["INBOUND", "OUTBOUND"] | Omit = omit,
         some_email_has_status: Literal[
             "DRAFT",
             "QUEUED",
@@ -161,17 +161,17 @@ class ThreadsResource(SyncAPIResource):
             "READ",
             "ARCHIVED",
         ]
-        | NotGiven = NOT_GIVEN,
-        sort_by: Literal["createdAt", "lastEmailAt", "subject"] | NotGiven = NOT_GIVEN,
-        sort_order: Literal["asc", "desc"] | NotGiven = NOT_GIVEN,
-        stale_threshold_days: float | NotGiven = NOT_GIVEN,
-        subject_contains: str | NotGiven = NOT_GIVEN,
+        | Omit = omit,
+        sort_by: Literal["createdAt", "lastEmailAt", "subject"] | Omit = omit,
+        sort_order: Literal["asc", "desc"] | Omit = omit,
+        stale_threshold_days: float | Omit = omit,
+        subject_contains: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
+        timeout: float | httpx.Timeout | None | NotGiven = not_given,
     ) -> ThreadSearchResponse:
         """
         Search threads with various filtering options optimized for AI agents
@@ -244,7 +244,7 @@ class AsyncThreadsResource(AsyncAPIResource):
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
+        timeout: float | httpx.Timeout | None | NotGiven = not_given,
     ) -> ThreadRetrieveResponse:
         """
         Retrieve a specific thread with all its emails by thread ID using API key
@@ -274,19 +274,19 @@ class AsyncThreadsResource(AsyncAPIResource):
         thread_id: str,
         *,
         to: Union[str, SequenceNotStr[str]],
-        bcc: Union[str, SequenceNotStr[str]] | NotGiven = NOT_GIVEN,
-        cc: Union[str, SequenceNotStr[str]] | NotGiven = NOT_GIVEN,
-        from_: str | NotGiven = NOT_GIVEN,
-        from_name: str | NotGiven = NOT_GIVEN,
-        include_attachments: bool | NotGiven = NOT_GIVEN,
-        is_draft: bool | NotGiven = NOT_GIVEN,
-        note: str | NotGiven = NOT_GIVEN,
+        bcc: Union[str, SequenceNotStr[str]] | Omit = omit,
+        cc: Union[str, SequenceNotStr[str]] | Omit = omit,
+        from_: str | Omit = omit,
+        from_name: str | Omit = omit,
+        include_attachments: bool | Omit = omit,
+        is_draft: bool | Omit = omit,
+        note: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
+        timeout: float | httpx.Timeout | None | NotGiven = not_given,
     ) -> ThreadForwardResponse:
         """
         Forward the entire thread as a readable transcript.
@@ -326,17 +326,17 @@ class AsyncThreadsResource(AsyncAPIResource):
     async def search(
         self,
         *,
-        conversation_state: Literal["awaiting_reply", "needs_reply", "active", "stale"] | NotGiven = NOT_GIVEN,
-        created_after: str | NotGiven = NOT_GIVEN,
-        created_before: str | NotGiven = NOT_GIVEN,
-        has_email_from_address: str | NotGiven = NOT_GIVEN,
-        has_email_to_address: str | NotGiven = NOT_GIVEN,
-        has_participant_emails: SequenceNotStr[str] | NotGiven = NOT_GIVEN,
-        last_email_after: str | NotGiven = NOT_GIVEN,
-        last_email_before: str | NotGiven = NOT_GIVEN,
-        limit: float | NotGiven = NOT_GIVEN,
-        offset: float | NotGiven = NOT_GIVEN,
-        some_email_has_direction: Literal["INBOUND", "OUTBOUND"] | NotGiven = NOT_GIVEN,
+        conversation_state: Literal["awaiting_reply", "needs_reply", "active", "stale"] | Omit = omit,
+        created_after: str | Omit = omit,
+        created_before: str | Omit = omit,
+        has_email_from_address: str | Omit = omit,
+        has_email_to_address: str | Omit = omit,
+        has_participant_emails: SequenceNotStr[str] | Omit = omit,
+        last_email_after: str | Omit = omit,
+        last_email_before: str | Omit = omit,
+        limit: float | Omit = omit,
+        offset: float | Omit = omit,
+        some_email_has_direction: Literal["INBOUND", "OUTBOUND"] | Omit = omit,
         some_email_has_status: Literal[
             "DRAFT",
             "QUEUED",
@@ -350,17 +350,17 @@ class AsyncThreadsResource(AsyncAPIResource):
             "READ",
             "ARCHIVED",
         ]
-        | NotGiven = NOT_GIVEN,
-        sort_by: Literal["createdAt", "lastEmailAt", "subject"] | NotGiven = NOT_GIVEN,
-        sort_order: Literal["asc", "desc"] | NotGiven = NOT_GIVEN,
-        stale_threshold_days: float | NotGiven = NOT_GIVEN,
-        subject_contains: str | NotGiven = NOT_GIVEN,
+        | Omit = omit,
+        sort_by: Literal["createdAt", "lastEmailAt", "subject"] | Omit = omit,
+        sort_order: Literal["asc", "desc"] | Omit = omit,
+        stale_threshold_days: float | Omit = omit,
+        subject_contains: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
+        timeout: float | httpx.Timeout | None | NotGiven = not_given,
     ) -> ThreadSearchResponse:
         """
         Search threads with various filtering options optimized for AI agents
