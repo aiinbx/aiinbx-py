@@ -21,7 +21,7 @@ from ._types import (
 )
 from ._utils import is_given, get_async_library
 from ._version import __version__
-from .resources import emails, threads
+from .resources import emails, domains, threads
 from ._streaming import Stream as Stream, AsyncStream as AsyncStream
 from ._exceptions import AIInbxError, APIStatusError
 from ._base_client import (
@@ -36,6 +36,7 @@ __all__ = ["Timeout", "Transport", "ProxiesTypes", "RequestOptions", "AIInbx", "
 class AIInbx(SyncAPIClient):
     threads: threads.ThreadsResource
     emails: emails.EmailsResource
+    domains: domains.DomainsResource
     with_raw_response: AIInbxWithRawResponse
     with_streaming_response: AIInbxWithStreamedResponse
 
@@ -95,6 +96,7 @@ class AIInbx(SyncAPIClient):
 
         self.threads = threads.ThreadsResource(self)
         self.emails = emails.EmailsResource(self)
+        self.domains = domains.DomainsResource(self)
         self.with_raw_response = AIInbxWithRawResponse(self)
         self.with_streaming_response = AIInbxWithStreamedResponse(self)
 
@@ -206,6 +208,7 @@ class AIInbx(SyncAPIClient):
 class AsyncAIInbx(AsyncAPIClient):
     threads: threads.AsyncThreadsResource
     emails: emails.AsyncEmailsResource
+    domains: domains.AsyncDomainsResource
     with_raw_response: AsyncAIInbxWithRawResponse
     with_streaming_response: AsyncAIInbxWithStreamedResponse
 
@@ -265,6 +268,7 @@ class AsyncAIInbx(AsyncAPIClient):
 
         self.threads = threads.AsyncThreadsResource(self)
         self.emails = emails.AsyncEmailsResource(self)
+        self.domains = domains.AsyncDomainsResource(self)
         self.with_raw_response = AsyncAIInbxWithRawResponse(self)
         self.with_streaming_response = AsyncAIInbxWithStreamedResponse(self)
 
@@ -377,24 +381,28 @@ class AIInbxWithRawResponse:
     def __init__(self, client: AIInbx) -> None:
         self.threads = threads.ThreadsResourceWithRawResponse(client.threads)
         self.emails = emails.EmailsResourceWithRawResponse(client.emails)
+        self.domains = domains.DomainsResourceWithRawResponse(client.domains)
 
 
 class AsyncAIInbxWithRawResponse:
     def __init__(self, client: AsyncAIInbx) -> None:
         self.threads = threads.AsyncThreadsResourceWithRawResponse(client.threads)
         self.emails = emails.AsyncEmailsResourceWithRawResponse(client.emails)
+        self.domains = domains.AsyncDomainsResourceWithRawResponse(client.domains)
 
 
 class AIInbxWithStreamedResponse:
     def __init__(self, client: AIInbx) -> None:
         self.threads = threads.ThreadsResourceWithStreamingResponse(client.threads)
         self.emails = emails.EmailsResourceWithStreamingResponse(client.emails)
+        self.domains = domains.DomainsResourceWithStreamingResponse(client.domains)
 
 
 class AsyncAIInbxWithStreamedResponse:
     def __init__(self, client: AsyncAIInbx) -> None:
         self.threads = threads.AsyncThreadsResourceWithStreamingResponse(client.threads)
         self.emails = emails.AsyncEmailsResourceWithStreamingResponse(client.emails)
+        self.domains = domains.AsyncDomainsResourceWithStreamingResponse(client.domains)
 
 
 Client = AIInbx
