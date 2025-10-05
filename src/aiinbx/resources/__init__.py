@@ -8,6 +8,14 @@ from .emails import (
     EmailsResourceWithStreamingResponse,
     AsyncEmailsResourceWithStreamingResponse,
 )
+from .domains import (
+    DomainsResource,
+    AsyncDomainsResource,
+    DomainsResourceWithRawResponse,
+    AsyncDomainsResourceWithRawResponse,
+    DomainsResourceWithStreamingResponse,
+    AsyncDomainsResourceWithStreamingResponse,
+)
 from .threads import (
     ThreadsResource,
     AsyncThreadsResource,
@@ -30,4 +38,10 @@ __all__ = [
     "AsyncEmailsResourceWithRawResponse",
     "EmailsResourceWithStreamingResponse",
     "AsyncEmailsResourceWithStreamingResponse",
+    "DomainsResource",
+    "AsyncDomainsResource",
+    "DomainsResourceWithRawResponse",
+    "AsyncDomainsResourceWithRawResponse",
+    "DomainsResourceWithStreamingResponse",
+    "AsyncDomainsResourceWithStreamingResponse",
 ]

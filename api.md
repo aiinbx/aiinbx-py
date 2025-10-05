@@ -25,3 +25,25 @@ Methods:
 - <code title="get /emails/{emailId}">client.emails.<a href="./src/aiinbx/resources/emails.py">retrieve</a>(email_id) -> <a href="./src/aiinbx/types/email_retrieve_response.py">EmailRetrieveResponse</a></code>
 - <code title="post /emails/{emailId}/reply">client.emails.<a href="./src/aiinbx/resources/emails.py">reply</a>(email_id, \*\*<a href="src/aiinbx/types/email_reply_params.py">params</a>) -> <a href="./src/aiinbx/types/email_reply_response.py">EmailReplyResponse</a></code>
 - <code title="post /emails/send">client.emails.<a href="./src/aiinbx/resources/emails.py">send</a>(\*\*<a href="src/aiinbx/types/email_send_params.py">params</a>) -> <a href="./src/aiinbx/types/email_send_response.py">EmailSendResponse</a></code>
+
+# Domains
+
+Types:
+
+```python
+from aiinbx.types import (
+    DomainCreateResponse,
+    DomainRetrieveResponse,
+    DomainListResponse,
+    DomainDeleteResponse,
+    DomainVerifyResponse,
+)
+```
+
+Methods:
+
+- <code title="post /domains">client.domains.<a href="./src/aiinbx/resources/domains.py">create</a>(\*\*<a href="src/aiinbx/types/domain_create_params.py">params</a>) -> <a href="./src/aiinbx/types/domain_create_response.py">DomainCreateResponse</a></code>
+- <code title="get /domains/{domainId}">client.domains.<a href="./src/aiinbx/resources/domains.py">retrieve</a>(domain_id) -> <a href="./src/aiinbx/types/domain_retrieve_response.py">DomainRetrieveResponse</a></code>
+- <code title="get /domains">client.domains.<a href="./src/aiinbx/resources/domains.py">list</a>() -> <a href="./src/aiinbx/types/domain_list_response.py">DomainListResponse</a></code>
+- <code title="delete /domains/{domainId}">client.domains.<a href="./src/aiinbx/resources/domains.py">delete</a>(domain_id) -> <a href="./src/aiinbx/types/domain_delete_response.py">DomainDeleteResponse</a></code>
+- <code title="post /domains/{domainId}/verify">client.domains.<a href="./src/aiinbx/resources/domains.py">verify</a>(domain_id) -> <a href="./src/aiinbx/types/domain_verify_response.py">DomainVerifyResponse</a></code>

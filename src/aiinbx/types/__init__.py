@@ -5,10 +5,16 @@ from __future__ import annotations
 from .email_send_params import EmailSendParams as EmailSendParams
 from .email_reply_params import EmailReplyParams as EmailReplyParams
 from .email_send_response import EmailSendResponse as EmailSendResponse
+from .domain_create_params import DomainCreateParams as DomainCreateParams
+from .domain_list_response import DomainListResponse as DomainListResponse
 from .email_reply_response import EmailReplyResponse as EmailReplyResponse
 from .thread_search_params import ThreadSearchParams as ThreadSearchParams
 from .thread_forward_params import ThreadForwardParams as ThreadForwardParams
+from .domain_create_response import DomainCreateResponse as DomainCreateResponse
+from .domain_delete_response import DomainDeleteResponse as DomainDeleteResponse
+from .domain_verify_response import DomainVerifyResponse as DomainVerifyResponse
 from .thread_search_response import ThreadSearchResponse as ThreadSearchResponse
 from .email_retrieve_response import EmailRetrieveResponse as EmailRetrieveResponse
 from .thread_forward_response import ThreadForwardResponse as ThreadForwardResponse
+from .domain_retrieve_response import DomainRetrieveResponse as DomainRetrieveResponse
 from .thread_retrieve_response import ThreadRetrieveResponse as ThreadRetrieveResponse
