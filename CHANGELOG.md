@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.5.0 (2025-10-15)
+
+Full Changelog: [v0.4.0...v0.5.0](https://github.com/aiinbx/aiinbx-py/compare/v0.4.0...v0.5.0)
+
+### Features
+
+* **api:** manual updates ([ddacc81](https://github.com/aiinbx/aiinbx-py/commit/ddacc8158fd4079c1ee4b8ae04f89f22e2fcd46a))
+
+
+### Chores
+
+* **internal:** detect missing future annotations with ruff ([6f6a3da](https://github.com/aiinbx/aiinbx-py/commit/6f6a3da5978b34e1a2959b38715d4311474f1c5e))
+
 ## 0.4.0 (2025-10-05)
 
 Full Changelog: [v0.3.0...v0.4.0](https://github.com/aiinbx/aiinbx-py/compare/v0.3.0...v0.4.0)
