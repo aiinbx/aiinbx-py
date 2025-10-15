@@ -47,3 +47,32 @@ Methods:
 - <code title="get /domains">client.domains.<a href="./src/aiinbx/resources/domains.py">list</a>() -> <a href="./src/aiinbx/types/domain_list_response.py">DomainListResponse</a></code>
 - <code title="delete /domains/{domainId}">client.domains.<a href="./src/aiinbx/resources/domains.py">delete</a>(domain_id) -> <a href="./src/aiinbx/types/domain_delete_response.py">DomainDeleteResponse</a></code>
 - <code title="post /domains/{domainId}/verify">client.domains.<a href="./src/aiinbx/resources/domains.py">verify</a>(domain_id) -> <a href="./src/aiinbx/types/domain_verify_response.py">DomainVerifyResponse</a></code>
+
+# Webhooks
+
+Types:
+
+```python
+from aiinbx.types import (
+    InboundEmailReceivedWebhookEvent,
+    OutboundEmailDeliveredWebhookEvent,
+    OutboundEmailBouncedWebhookEvent,
+    OutboundEmailComplainedWebhookEvent,
+    OutboundEmailRejectedWebhookEvent,
+    OutboundEmailOpenedWebhookEvent,
+    OutboundEmailClickedWebhookEvent,
+    UnwrapWebhookEvent,
+)
+```
+
+# Meta
+
+Types:
+
+```python
+from aiinbx.types import MetaWebhooksSchemaResponse
+```
+
+Methods:
+
+- <code title="get /_meta/webhooks">client.meta.<a href="./src/aiinbx/resources/meta.py">webhooks_schema</a>() -> <a href="./src/aiinbx/types/meta_webhooks_schema_response.py">MetaWebhooksSchemaResponse</a></code>
