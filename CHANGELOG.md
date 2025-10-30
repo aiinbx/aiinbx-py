@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.5.1 (2025-10-30)
+
+Full Changelog: [v0.5.0...v0.5.1](https://github.com/aiinbx/aiinbx-py/compare/v0.5.0...v0.5.1)
+
+### Bug Fixes
+
+* **client:** close streams without requiring full consumption ([d824bbb](https://github.com/aiinbx/aiinbx-py/commit/d824bbbd517355748039bf7f5edfbee0e802a606))
+
+
+### Chores
+
+* bump `httpx-aiohttp` version to 0.1.9 ([8c932fb](https://github.com/aiinbx/aiinbx-py/commit/8c932fb49aa74fe9174deb5c7b4e71cccd41f119))
+
 ## 0.5.0 (2025-10-15)
 
 Full Changelog: [v0.4.0...v0.5.0](https://github.com/aiinbx/aiinbx-py/compare/v0.4.0...v0.5.0)
