@@ -78,6 +78,15 @@ class TestThreads:
         thread = client.threads.forward(
             thread_id="threadId",
             to="dev@stainless.com",
+            attachments=[
+                {
+                    "content": "content",
+                    "file_name": "file_name",
+                    "cid": "cid",
+                    "content_type": "content_type",
+                    "disposition": "attachment",
+                }
+            ],
             bcc="dev@stainless.com",
             cc="dev@stainless.com",
             from_="dev@stainless.com",
@@ -239,6 +248,15 @@ class TestAsyncThreads:
         thread = await async_client.threads.forward(
             thread_id="threadId",
             to="dev@stainless.com",
+            attachments=[
+                {
+                    "content": "content",
+                    "file_name": "file_name",
+                    "cid": "cid",
+                    "content_type": "content_type",
+                    "disposition": "attachment",
+                }
+            ],
             bcc="dev@stainless.com",
             cc="dev@stainless.com",
             from_="dev@stainless.com",

@@ -2,17 +2,19 @@
 
 from __future__ import annotations
 
-from typing import Union
-from typing_extensions import Required, Annotated, TypedDict
+from typing import Union, Iterable
+from typing_extensions import Literal, Required, Annotated, TypedDict
 
 from .._types import SequenceNotStr
 from .._utils import PropertyInfo
 
-__all__ = ["ThreadForwardParams"]
+__all__ = ["ThreadForwardParams", "Attachment"]
 
 
 class ThreadForwardParams(TypedDict, total=False):
     to: Required[Union[str, SequenceNotStr[str]]]
+
+    attachments: Iterable[Attachment]
 
     bcc: Union[str, SequenceNotStr[str]]
 
@@ -27,3 +29,15 @@ class ThreadForwardParams(TypedDict, total=False):
     is_draft: bool
 
     note: str
+
+
+class Attachment(TypedDict, total=False):
+    content: Required[str]
+
+    file_name: Required[str]
+
+    cid: str
+
+    content_type: str
+
+    disposition: Literal["attachment", "inline"]
