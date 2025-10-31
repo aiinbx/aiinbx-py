@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Union
+from typing import Union, Iterable
 from typing_extensions import Literal
 
 import httpx
@@ -85,6 +85,7 @@ class ThreadsResource(SyncAPIResource):
         thread_id: str,
         *,
         to: Union[str, SequenceNotStr[str]],
+        attachments: Iterable[thread_forward_params.Attachment] | Omit = omit,
         bcc: Union[str, SequenceNotStr[str]] | Omit = omit,
         cc: Union[str, SequenceNotStr[str]] | Omit = omit,
         from_: str | Omit = omit,
@@ -118,6 +119,7 @@ class ThreadsResource(SyncAPIResource):
             body=maybe_transform(
                 {
                     "to": to,
+                    "attachments": attachments,
                     "bcc": bcc,
                     "cc": cc,
                     "from_": from_,
@@ -274,6 +276,7 @@ class AsyncThreadsResource(AsyncAPIResource):
         thread_id: str,
         *,
         to: Union[str, SequenceNotStr[str]],
+        attachments: Iterable[thread_forward_params.Attachment] | Omit = omit,
         bcc: Union[str, SequenceNotStr[str]] | Omit = omit,
         cc: Union[str, SequenceNotStr[str]] | Omit = omit,
         from_: str | Omit = omit,
@@ -307,6 +310,7 @@ class AsyncThreadsResource(AsyncAPIResource):
             body=await async_maybe_transform(
                 {
                     "to": to,
+                    "attachments": attachments,
                     "bcc": bcc,
                     "cc": cc,
                     "from_": from_,

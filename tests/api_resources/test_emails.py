@@ -80,6 +80,15 @@ class TestEmails:
             email_id="emailId",
             from_="dev@stainless.com",
             html="html",
+            attachments=[
+                {
+                    "content": "content",
+                    "file_name": "file_name",
+                    "cid": "cid",
+                    "content_type": "content_type",
+                    "disposition": "attachment",
+                }
+            ],
             bcc="dev@stainless.com",
             cc="dev@stainless.com",
             from_name="from_name",
@@ -150,6 +159,15 @@ class TestEmails:
             html="html",
             subject="subject",
             to="dev@stainless.com",
+            attachments=[
+                {
+                    "content": "content",
+                    "file_name": "file_name",
+                    "cid": "cid",
+                    "content_type": "content_type",
+                    "disposition": "attachment",
+                }
+            ],
             bcc="dev@stainless.com",
             cc="dev@stainless.com",
             from_name="from_name",
@@ -259,6 +277,15 @@ class TestAsyncEmails:
             email_id="emailId",
             from_="dev@stainless.com",
             html="html",
+            attachments=[
+                {
+                    "content": "content",
+                    "file_name": "file_name",
+                    "cid": "cid",
+                    "content_type": "content_type",
+                    "disposition": "attachment",
+                }
+            ],
             bcc="dev@stainless.com",
             cc="dev@stainless.com",
             from_name="from_name",
@@ -329,6 +356,15 @@ class TestAsyncEmails:
             html="html",
             subject="subject",
             to="dev@stainless.com",
+            attachments=[
+                {
+                    "content": "content",
+                    "file_name": "file_name",
+                    "cid": "cid",
+                    "content_type": "content_type",
+                    "disposition": "attachment",
+                }
+            ],
             bcc="dev@stainless.com",
             cc="dev@stainless.com",
             from_name="from_name",

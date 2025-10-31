@@ -2,19 +2,21 @@
 
 from __future__ import annotations
 
-from typing import Union
-from typing_extensions import Required, Annotated, TypedDict
+from typing import Union, Iterable
+from typing_extensions import Literal, Required, Annotated, TypedDict
 
 from .._types import SequenceNotStr
 from .._utils import PropertyInfo
 
-__all__ = ["EmailReplyParams"]
+__all__ = ["EmailReplyParams", "Attachment"]
 
 
 class EmailReplyParams(TypedDict, total=False):
     from_: Required[Annotated[str, PropertyInfo(alias="from")]]
 
     html: Required[str]
+
+    attachments: Iterable[Attachment]
 
     bcc: Union[str, SequenceNotStr[str]]
 
@@ -31,3 +33,15 @@ class EmailReplyParams(TypedDict, total=False):
     text: str
 
     to: Union[str, SequenceNotStr[str]]
+
+
+class Attachment(TypedDict, total=False):
+    content: Required[str]
+
+    file_name: Required[str]
+
+    cid: str
+
+    content_type: str
+
+    disposition: Literal["attachment", "inline"]
