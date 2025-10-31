@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.6.0 (2025-10-31)
+
+Full Changelog: [v0.5.1...v0.6.0](https://github.com/aiinbx/aiinbx-py/compare/v0.5.1...v0.6.0)
+
+### Features
+
+* **api:** api update ([e0ee97a](https://github.com/aiinbx/aiinbx-py/commit/e0ee97a7568dc6839f1c011b5312ec34ce3d9f7d))
+
+
+### Chores
+
+* **internal/tests:** avoid race condition with implicit client cleanup ([4cf6938](https://github.com/aiinbx/aiinbx-py/commit/4cf6938564097419455a6219e0b217e7921a9ea2))
+
 ## 0.5.1 (2025-10-30)
 
 Full Changelog: [v0.5.0...v0.5.1](https://github.com/aiinbx/aiinbx-py/compare/v0.5.0...v0.5.1)
