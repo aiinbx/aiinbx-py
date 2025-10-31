@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Union
+from typing import Union, Iterable
 
 import httpx
 
@@ -84,6 +84,7 @@ class EmailsResource(SyncAPIResource):
         *,
         from_: str,
         html: str,
+        attachments: Iterable[email_reply_params.Attachment] | Omit = omit,
         bcc: Union[str, SequenceNotStr[str]] | Omit = omit,
         cc: Union[str, SequenceNotStr[str]] | Omit = omit,
         from_name: str | Omit = omit,
@@ -122,6 +123,7 @@ class EmailsResource(SyncAPIResource):
                 {
                     "from_": from_,
                     "html": html,
+                    "attachments": attachments,
                     "bcc": bcc,
                     "cc": cc,
                     "from_name": from_name,
@@ -146,6 +148,7 @@ class EmailsResource(SyncAPIResource):
         html: str,
         subject: str,
         to: Union[str, SequenceNotStr[str]],
+        attachments: Iterable[email_send_params.Attachment] | Omit = omit,
         bcc: Union[str, SequenceNotStr[str]] | Omit = omit,
         cc: Union[str, SequenceNotStr[str]] | Omit = omit,
         from_name: str | Omit = omit,
@@ -185,6 +188,7 @@ class EmailsResource(SyncAPIResource):
                     "html": html,
                     "subject": subject,
                     "to": to,
+                    "attachments": attachments,
                     "bcc": bcc,
                     "cc": cc,
                     "from_name": from_name,
@@ -263,6 +267,7 @@ class AsyncEmailsResource(AsyncAPIResource):
         *,
         from_: str,
         html: str,
+        attachments: Iterable[email_reply_params.Attachment] | Omit = omit,
         bcc: Union[str, SequenceNotStr[str]] | Omit = omit,
         cc: Union[str, SequenceNotStr[str]] | Omit = omit,
         from_name: str | Omit = omit,
@@ -301,6 +306,7 @@ class AsyncEmailsResource(AsyncAPIResource):
                 {
                     "from_": from_,
                     "html": html,
+                    "attachments": attachments,
                     "bcc": bcc,
                     "cc": cc,
                     "from_name": from_name,
@@ -325,6 +331,7 @@ class AsyncEmailsResource(AsyncAPIResource):
         html: str,
         subject: str,
         to: Union[str, SequenceNotStr[str]],
+        attachments: Iterable[email_send_params.Attachment] | Omit = omit,
         bcc: Union[str, SequenceNotStr[str]] | Omit = omit,
         cc: Union[str, SequenceNotStr[str]] | Omit = omit,
         from_name: str | Omit = omit,
@@ -364,6 +371,7 @@ class AsyncEmailsResource(AsyncAPIResource):
                     "html": html,
                     "subject": subject,
                     "to": to,
+                    "attachments": attachments,
                     "bcc": bcc,
                     "cc": cc,
                     "from_name": from_name,
