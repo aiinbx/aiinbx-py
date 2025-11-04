@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.7.0 (2025-11-04)
+
+Full Changelog: [v0.6.0...v0.7.0](https://github.com/aiinbx/aiinbx-py/compare/v0.6.0...v0.7.0)
+
+### Features
+
+* **api:** api update ([0f82ed1](https://github.com/aiinbx/aiinbx-py/commit/0f82ed1bf1a6d34c2e63ecbc9cf0a5b43f53e89a))
+
+
+### Chores
+
+* **internal:** grammar fix (it's -&gt; its) ([4398c76](https://github.com/aiinbx/aiinbx-py/commit/4398c76c2f4f5cd115df6f40f9948dc9d439a9b6))
+
 ## 0.6.0 (2025-10-31)
 
 Full Changelog: [v0.5.1...v0.6.0](https://github.com/aiinbx/aiinbx-py/compare/v0.5.1...v0.6.0)
