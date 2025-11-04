@@ -35,6 +35,8 @@ class Domain(BaseModel):
 
     domain: str
 
+    is_managed_default: bool = FieldInfo(alias="isManagedDefault")
+
     status: Literal["VERIFIED", "PENDING_VERIFICATION", "NOT_REGISTERED"]
 
     updated_at: str = FieldInfo(alias="updatedAt")
