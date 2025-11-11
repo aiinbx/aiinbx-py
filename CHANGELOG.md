@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.7.1 (2025-11-11)
+
+Full Changelog: [v0.7.0...v0.7.1](https://github.com/aiinbx/aiinbx-py/compare/v0.7.0...v0.7.1)
+
+### Bug Fixes
+
+* compat with Python 3.14 ([17da3dd](https://github.com/aiinbx/aiinbx-py/commit/17da3dd00711f92f515ab05562b79eb784d0ce24))
+
+
+### Chores
+
+* **internal:** codegen related update ([2976852](https://github.com/aiinbx/aiinbx-py/commit/2976852cdedba8ffdaed6879fd51d87708419503))
+
 ## 0.7.0 (2025-11-04)
 
 Full Changelog: [v0.6.0...v0.7.0](https://github.com/aiinbx/aiinbx-py/compare/v0.6.0...v0.7.0)
