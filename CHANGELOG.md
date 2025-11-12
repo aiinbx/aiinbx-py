@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.7.2 (2025-11-12)
+
+Full Changelog: [v0.7.1...v0.7.2](https://github.com/aiinbx/aiinbx-py/compare/v0.7.1...v0.7.2)
+
+### Bug Fixes
+
+* **compat:** update signatures of `model_dump` and `model_dump_json` for Pydantic v1 ([63fdaba](https://github.com/aiinbx/aiinbx-py/commit/63fdaba20d9bfe35d1d1358ef229d28c222b5ecf))
+
 ## 0.7.1 (2025-11-11)
 
 Full Changelog: [v0.7.0...v0.7.1](https://github.com/aiinbx/aiinbx-py/compare/v0.7.0...v0.7.1)
