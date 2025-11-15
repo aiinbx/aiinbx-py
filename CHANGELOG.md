@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.0 (2025-11-15)
+
+Full Changelog: [v0.7.2...v0.8.0](https://github.com/aiinbx/aiinbx-py/compare/v0.7.2...v0.8.0)
+
+### Features
+
+* **api:** api update ([73ba8b5](https://github.com/aiinbx/aiinbx-py/commit/73ba8b5c88cf196e502f10cf975dd5c58620fd90))
+
 ## 0.7.2 (2025-11-12)
 
 Full Changelog: [v0.7.1...v0.7.2](https://github.com/aiinbx/aiinbx-py/compare/v0.7.1...v0.7.2)
