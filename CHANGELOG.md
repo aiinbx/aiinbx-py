@@ -1,5 +1,76 @@
 # Changelog
 
+## 0.33.0 (2025-11-18)
+
+Full Changelog: [v0.32.0...v0.33.0](https://github.com/aiinbx/aiinbx-py/compare/v0.32.0...v0.33.0)
+
+### Features
+
+* **api:** api update ([a9f4e64](https://github.com/aiinbx/aiinbx-py/commit/a9f4e64a44eef5f83c5524b7805a42c1ec0a11a4))
+* **api:** api update ([6fde6bb](https://github.com/aiinbx/aiinbx-py/commit/6fde6bb2fe44c59108447cc8ac7a323b7d0c2629))
+* **api:** api update ([fc5511e](https://github.com/aiinbx/aiinbx-py/commit/fc5511e033fc3b3bc2ff14df8b6beb00548f76b9))
+* **api:** api update ([acfd5ed](https://github.com/aiinbx/aiinbx-py/commit/acfd5ed0eb83fa61f0d1dfc5582221627d807d18))
+* **api:** api update ([217f9fe](https://github.com/aiinbx/aiinbx-py/commit/217f9fe35cc01e3632021154532b9e8c68ac34ea))
+* **api:** api update ([ad10db4](https://github.com/aiinbx/aiinbx-py/commit/ad10db4bce1262d36b94612cc47ee6e8c66b2ba0))
+* **api:** api update ([297679b](https://github.com/aiinbx/aiinbx-py/commit/297679b314e893af136eaac292cb01f7c64e76d1))
+* **api:** api update ([b77ff86](https://github.com/aiinbx/aiinbx-py/commit/b77ff862599eba45522848d1976f2ad0f7171830))
+* **api:** api update ([918bf99](https://github.com/aiinbx/aiinbx-py/commit/918bf99ea3d6df3ce819627e37cc02f61969721e))
+* **api:** api update ([94d5491](https://github.com/aiinbx/aiinbx-py/commit/94d5491081b14940f026f26ede06609563053e2f))
+* **api:** api update ([d0edd94](https://github.com/aiinbx/aiinbx-py/commit/d0edd9478aa785a39fa9269b83e41af5cea6d2a1))
+* **api:** api update ([8401492](https://github.com/aiinbx/aiinbx-py/commit/84014923bc87d1caee8ad0e8f7b59f09ff276ef8))
+* **api:** api update ([e220a15](https://github.com/aiinbx/aiinbx-py/commit/e220a156bab48b9d6695b07ee888c60fc4c57409))
+* **api:** api update ([d8d2ac5](https://github.com/aiinbx/aiinbx-py/commit/d8d2ac5e07ccf3db6c9e81c9c0b78ae3e4d14e7f))
+* **api:** api update ([0ce53af](https://github.com/aiinbx/aiinbx-py/commit/0ce53af25ec38907a900fe4853ff8b9bdf19cf00))
+* **api:** api update ([bfd7765](https://github.com/aiinbx/aiinbx-py/commit/bfd77656d16db7142ba89c7533fc65a6714c96ab))
+* **api:** api update ([9a989b4](https://github.com/aiinbx/aiinbx-py/commit/9a989b4a8eecd76012a38a967f8f21702781f703))
+* **api:** api update ([9ebe5ce](https://github.com/aiinbx/aiinbx-py/commit/9ebe5ce18e2acb366245b22d201ed15b3e35d1aa))
+* **api:** api update ([5f74d6b](https://github.com/aiinbx/aiinbx-py/commit/5f74d6bc627b23cb85e9c3beddbb3e3f5bf77f25))
+* **api:** api update ([2f56833](https://github.com/aiinbx/aiinbx-py/commit/2f568330c6060d7c255be445847083518659eb6e))
+* **api:** api update ([df57cb1](https://github.com/aiinbx/aiinbx-py/commit/df57cb153d7cb3f7f5badf98a190b20c7047d254))
+* **api:** api update ([e3fa355](https://github.com/aiinbx/aiinbx-py/commit/e3fa35502f7b817fa74e1b6b3032c1d08a34d873))
+* **api:** api update ([a5ca405](https://github.com/aiinbx/aiinbx-py/commit/a5ca405d9fedb2ac2b7f20713f8f8f7c87dfc85f))
+* **api:** api update ([fe5a0cc](https://github.com/aiinbx/aiinbx-py/commit/fe5a0cc698a3b8b0dd1a3f993cbf450ed47778fe))
+* **api:** api update ([4f77bfb](https://github.com/aiinbx/aiinbx-py/commit/4f77bfbecceea24c6b0209573aa6803b520fce2a))
+* **api:** api update ([8e2c2d3](https://github.com/aiinbx/aiinbx-py/commit/8e2c2d38780c713d63ed975ec3366936d19e83fe))
+* **api:** api update ([abab237](https://github.com/aiinbx/aiinbx-py/commit/abab237a881dad9a4b0ac14ac2987f963323d1ec))
+* **api:** api update ([09bb63d](https://github.com/aiinbx/aiinbx-py/commit/09bb63d0796c0ec6f7c4f85054fa765d5d437f54))
+* **api:** api update ([12de8ae](https://github.com/aiinbx/aiinbx-py/commit/12de8aef3efb1916af01cfc298a0880b7ac90781))
+* **api:** api update ([835f86b](https://github.com/aiinbx/aiinbx-py/commit/835f86bd8a3eeefdb0c027e20a24bb705da527c1))
+* **api:** manual updates ([0e6ad9c](https://github.com/aiinbx/aiinbx-py/commit/0e6ad9c05bc04d627495d33c26112fe8eea3b83e))
+* **api:** manual updates ([a8e2907](https://github.com/aiinbx/aiinbx-py/commit/a8e29077f61c37e1565bae986960e671b4d8583d))
+* **api:** manual updates ([3377308](https://github.com/aiinbx/aiinbx-py/commit/33773085b7658fb2be22c4c487ea33877e980c7c))
+* **api:** manual updates ([9f338c0](https://github.com/aiinbx/aiinbx-py/commit/9f338c08cf76e9482a9529c761654cdd250483ea))
+* improve future compat with pydantic v3 ([60479fd](https://github.com/aiinbx/aiinbx-py/commit/60479fd5aab856633c6eca0df3c1c5bfaddceb1d))
+* **types:** replace List[str] with SequenceNotStr in params ([68f13b9](https://github.com/aiinbx/aiinbx-py/commit/68f13b951258795a96bfeb25b9017d404edf58b7))
+
+
+### Bug Fixes
+
+* avoid newer type syntax ([5be7f33](https://github.com/aiinbx/aiinbx-py/commit/5be7f3326de519f7be66a89cb7fea6428378b2af))
+* **client:** close streams without requiring full consumption ([c9f31ef](https://github.com/aiinbx/aiinbx-py/commit/c9f31ef55fb6d3fb93be2213334f91a2d04dd258))
+* compat with Python 3.14 ([7e15855](https://github.com/aiinbx/aiinbx-py/commit/7e158557c4b162a4a87c67b939cddf0d9d1a7d05))
+* **compat:** update signatures of `model_dump` and `model_dump_json` for Pydantic v1 ([744437f](https://github.com/aiinbx/aiinbx-py/commit/744437f18a7aa06a7956aae618a7240e6926061f))
+
+
+### Chores
+
+* bump `httpx-aiohttp` version to 0.1.9 ([68dfe98](https://github.com/aiinbx/aiinbx-py/commit/68dfe98c70f4338569bc9ec71c769cfb596b66df))
+* configure new SDK language ([3cc34fc](https://github.com/aiinbx/aiinbx-py/commit/3cc34fcf8b0325986076726a774c419992b5aafa))
+* do not install brew dependencies in ./scripts/bootstrap by default ([b790676](https://github.com/aiinbx/aiinbx-py/commit/b79067691b2dd53f05e0c1ec4e7d44329d5a2a7d))
+* **internal/tests:** avoid race condition with implicit client cleanup ([8151b68](https://github.com/aiinbx/aiinbx-py/commit/8151b681a02be66458edc9692574dc6143f036f7))
+* **internal:** add Sequence related utils ([4a2dd8c](https://github.com/aiinbx/aiinbx-py/commit/4a2dd8c5ca6c58ca5e4774eaad28167b0d797bf9))
+* **internal:** change ci workflow machines ([0bdef89](https://github.com/aiinbx/aiinbx-py/commit/0bdef89c32b5776076a51f33e0bf2e3b420c76f2))
+* **internal:** codegen related update ([6f79bad](https://github.com/aiinbx/aiinbx-py/commit/6f79bad626202ec0b4227e61a5ddc4c8b9acdf64))
+* **internal:** detect missing future annotations with ruff ([c12e87e](https://github.com/aiinbx/aiinbx-py/commit/c12e87e4070f07c2b69625d727166ba55fcbbd62))
+* **internal:** grammar fix (it's -&gt; its) ([ec0e54a](https://github.com/aiinbx/aiinbx-py/commit/ec0e54a72af0ce65d410a2e5775253cf9e570268))
+* **internal:** move mypy configurations to `pyproject.toml` file ([485c0d9](https://github.com/aiinbx/aiinbx-py/commit/485c0d9f65d7fd8f59f9a2509c31cceaced1200f))
+* **internal:** update pydantic dependency ([6a9413a](https://github.com/aiinbx/aiinbx-py/commit/6a9413a8cb94c48beed239109f876e705a3c92a1))
+* **internal:** update pyright exclude list ([a2e7dba](https://github.com/aiinbx/aiinbx-py/commit/a2e7dba2d4e5daacb20e90498133b7f814938556))
+* **tests:** simplify `get_platform` test ([ba0da0f](https://github.com/aiinbx/aiinbx-py/commit/ba0da0f48f2209bcb96d9d5f9f7d92dbbd9ed524))
+* **types:** change optional parameter type from NotGiven to Omit ([220c508](https://github.com/aiinbx/aiinbx-py/commit/220c508548d348593f5ab50b919b68ff7a0321e2))
+* update github action ([9f7c7f2](https://github.com/aiinbx/aiinbx-py/commit/9f7c7f2a77c7f129fcebcad3de76a0d0c027c511))
+* update SDK settings ([9251ee7](https://github.com/aiinbx/aiinbx-py/commit/9251ee7b47185255692e59f672e6158f4af32541))
+
 ## 0.32.0 (2025-11-18)
 
 Full Changelog: [v0.31.0...v0.32.0](https://github.com/aiinbx/aiinbx-py/compare/v0.31.0...v0.32.0)
