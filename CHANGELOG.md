@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.67.0 (2025-11-22)
+
+Full Changelog: [v0.66.0...v0.67.0](https://github.com/aiinbx/aiinbx-py/compare/v0.66.0...v0.67.0)
+
+### Features
+
+* **api:** api update ([d4b338f](https://github.com/aiinbx/aiinbx-py/commit/d4b338f1a4be2250647aa71aad337dc37333ef6d))
+
+
+### Chores
+
+* add Python 3.14 classifier and testing ([62f401d](https://github.com/aiinbx/aiinbx-py/commit/62f401ddcd9c4cba9fce5cf4a5343577aead36e4))
+
 ## 0.66.0 (2025-11-22)
 
 Full Changelog: [v0.65.0...v0.66.0](https://github.com/aiinbx/aiinbx-py/compare/v0.65.0...v0.66.0)
