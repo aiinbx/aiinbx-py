@@ -60,6 +60,8 @@ class EmailsResource(SyncAPIResource):
         Retrieve a specific email by its ID using API key authentication
 
         Args:
+          email_id: The unique identifier of the email
+
           extra_headers: Send extra headers
 
           extra_query: Add additional query parameters to the request
@@ -243,6 +245,8 @@ class AsyncEmailsResource(AsyncAPIResource):
         Retrieve a specific email by its ID using API key authentication
 
         Args:
+          email_id: The unique identifier of the email
+
           extra_headers: Send extra headers
 
           extra_query: Add additional query parameters to the request
