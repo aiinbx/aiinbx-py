@@ -60,6 +60,8 @@ class EmailsResource(SyncAPIResource):
         Retrieve a specific email by its ID using API key authentication
 
         Args:
+          email_id: The unique identifier of the email
+
           extra_headers: Send extra headers
 
           extra_query: Add additional query parameters to the request
@@ -93,6 +95,8 @@ class EmailsResource(SyncAPIResource):
         subject: str | Omit = omit,
         text: str | Omit = omit,
         to: Union[str, SequenceNotStr[str]] | Omit = omit,
+        track_clicks: bool | Omit = omit,
+        track_opens: bool | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
@@ -132,6 +136,8 @@ class EmailsResource(SyncAPIResource):
                     "subject": subject,
                     "text": text,
                     "to": to,
+                    "track_clicks": track_clicks,
+                    "track_opens": track_opens,
                 },
                 email_reply_params.EmailReplyParams,
             ),
@@ -158,6 +164,8 @@ class EmailsResource(SyncAPIResource):
         reply_to: Union[str, SequenceNotStr[str]] | Omit = omit,
         text: str | Omit = omit,
         thread_id: str | Omit = omit,
+        track_clicks: bool | Omit = omit,
+        track_opens: bool | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
@@ -198,6 +206,8 @@ class EmailsResource(SyncAPIResource):
                     "reply_to": reply_to,
                     "text": text,
                     "thread_id": thread_id,
+                    "track_clicks": track_clicks,
+                    "track_opens": track_opens,
                 },
                 email_send_params.EmailSendParams,
             ),
@@ -243,6 +253,8 @@ class AsyncEmailsResource(AsyncAPIResource):
         Retrieve a specific email by its ID using API key authentication
 
         Args:
+          email_id: The unique identifier of the email
+
           extra_headers: Send extra headers
 
           extra_query: Add additional query parameters to the request
@@ -276,6 +288,8 @@ class AsyncEmailsResource(AsyncAPIResource):
         subject: str | Omit = omit,
         text: str | Omit = omit,
         to: Union[str, SequenceNotStr[str]] | Omit = omit,
+        track_clicks: bool | Omit = omit,
+        track_opens: bool | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
@@ -315,6 +329,8 @@ class AsyncEmailsResource(AsyncAPIResource):
                     "subject": subject,
                     "text": text,
                     "to": to,
+                    "track_clicks": track_clicks,
+                    "track_opens": track_opens,
                 },
                 email_reply_params.EmailReplyParams,
             ),
@@ -341,6 +357,8 @@ class AsyncEmailsResource(AsyncAPIResource):
         reply_to: Union[str, SequenceNotStr[str]] | Omit = omit,
         text: str | Omit = omit,
         thread_id: str | Omit = omit,
+        track_clicks: bool | Omit = omit,
+        track_opens: bool | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
@@ -381,6 +399,8 @@ class AsyncEmailsResource(AsyncAPIResource):
                     "reply_to": reply_to,
                     "text": text,
                     "thread_id": thread_id,
+                    "track_clicks": track_clicks,
+                    "track_opens": track_opens,
                 },
                 email_send_params.EmailSendParams,
             ),
