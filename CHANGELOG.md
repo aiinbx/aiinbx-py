@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.98.0 (2025-11-25)
+
+Full Changelog: [v0.97.0...v0.98.0](https://github.com/aiinbx/aiinbx-py/compare/v0.97.0...v0.98.0)
+
+### Features
+
+* **api:** api update ([bead2f2](https://github.com/aiinbx/aiinbx-py/commit/bead2f2f878227f6df01064c48d4e9f6881c8cb2))
+
 ## 0.97.0 (2025-11-24)
 
 Full Changelog: [v0.96.0...v0.97.0](https://github.com/aiinbx/aiinbx-py/compare/v0.96.0...v0.97.0)
