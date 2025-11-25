@@ -30,6 +30,10 @@ class ThreadForwardParams(TypedDict, total=False):
 
     note: str
 
+    track_clicks: bool
+
+    track_opens: bool
+
 
 class Attachment(TypedDict, total=False):
     content: Required[str]

@@ -62,6 +62,8 @@ class ThreadsResource(SyncAPIResource):
         authentication
 
         Args:
+          thread_id: The unique identifier of the thread
+
           extra_headers: Send extra headers
 
           extra_query: Add additional query parameters to the request
@@ -93,6 +95,8 @@ class ThreadsResource(SyncAPIResource):
         include_attachments: bool | Omit = omit,
         is_draft: bool | Omit = omit,
         note: str | Omit = omit,
+        track_clicks: bool | Omit = omit,
+        track_opens: bool | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
@@ -127,6 +131,8 @@ class ThreadsResource(SyncAPIResource):
                     "include_attachments": include_attachments,
                     "is_draft": is_draft,
                     "note": note,
+                    "track_clicks": track_clicks,
+                    "track_opens": track_opens,
                 },
                 thread_forward_params.ThreadForwardParams,
             ),
@@ -253,6 +259,8 @@ class AsyncThreadsResource(AsyncAPIResource):
         authentication
 
         Args:
+          thread_id: The unique identifier of the thread
+
           extra_headers: Send extra headers
 
           extra_query: Add additional query parameters to the request
@@ -284,6 +292,8 @@ class AsyncThreadsResource(AsyncAPIResource):
         include_attachments: bool | Omit = omit,
         is_draft: bool | Omit = omit,
         note: str | Omit = omit,
+        track_clicks: bool | Omit = omit,
+        track_opens: bool | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
@@ -318,6 +328,8 @@ class AsyncThreadsResource(AsyncAPIResource):
                     "include_attachments": include_attachments,
                     "is_draft": is_draft,
                     "note": note,
+                    "track_clicks": track_clicks,
+                    "track_opens": track_opens,
                 },
                 thread_forward_params.ThreadForwardParams,
             ),

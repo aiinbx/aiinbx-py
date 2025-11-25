@@ -97,6 +97,8 @@ class TestEmails:
             subject="subject",
             text="text",
             to="dev@stainless.com",
+            track_clicks=True,
+            track_opens=True,
         )
         assert_matches_type(EmailReplyResponse, email, path=["response"])
 
@@ -177,6 +179,8 @@ class TestEmails:
             reply_to="dev@stainless.com",
             text="text",
             thread_id="threadId",
+            track_clicks=True,
+            track_opens=True,
         )
         assert_matches_type(EmailSendResponse, email, path=["response"])
 
@@ -294,6 +298,8 @@ class TestAsyncEmails:
             subject="subject",
             text="text",
             to="dev@stainless.com",
+            track_clicks=True,
+            track_opens=True,
         )
         assert_matches_type(EmailReplyResponse, email, path=["response"])
 
@@ -374,6 +380,8 @@ class TestAsyncEmails:
             reply_to="dev@stainless.com",
             text="text",
             thread_id="threadId",
+            track_clicks=True,
+            track_opens=True,
         )
         assert_matches_type(EmailSendResponse, email, path=["response"])
 

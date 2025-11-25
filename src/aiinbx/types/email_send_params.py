@@ -40,6 +40,10 @@ class EmailSendParams(TypedDict, total=False):
 
     thread_id: Annotated[str, PropertyInfo(alias="threadId")]
 
+    track_clicks: bool
+
+    track_opens: bool
+
 
 class Attachment(TypedDict, total=False):
     content: Required[str]

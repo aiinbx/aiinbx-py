@@ -94,6 +94,8 @@ class TestThreads:
             include_attachments=True,
             is_draft=True,
             note="note",
+            track_clicks=True,
+            track_opens=True,
         )
         assert_matches_type(ThreadForwardResponse, thread, path=["response"])
 
@@ -264,6 +266,8 @@ class TestAsyncThreads:
             include_attachments=True,
             is_draft=True,
             note="note",
+            track_clicks=True,
+            track_opens=True,
         )
         assert_matches_type(ThreadForwardResponse, thread, path=["response"])
 
