@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.137.0 (2025-11-28)
+
+Full Changelog: [v0.136.1...v0.137.0](https://github.com/aiinbx/aiinbx-py/compare/v0.136.1...v0.137.0)
+
+### Features
+
+* **api:** api update ([9e3f137](https://github.com/aiinbx/aiinbx-py/commit/9e3f1371f8e85a0cc852ecf1f4fab5b90dc4fb86))
+
+
+### Chores
+
+* **deps:** mypy 1.18.1 has a regression, pin to 1.17 ([58a443e](https://github.com/aiinbx/aiinbx-py/commit/58a443ebe51ac4353efdd467ca54711874274f90))
+
 ## 0.136.1 (2025-11-28)
 
 Full Changelog: [v0.136.0...v0.136.1](https://github.com/aiinbx/aiinbx-py/compare/v0.136.0...v0.136.1)
