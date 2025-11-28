@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.136.1 (2025-11-28)
+
+Full Changelog: [v0.136.0...v0.136.1](https://github.com/aiinbx/aiinbx-py/compare/v0.136.0...v0.136.1)
+
+### Bug Fixes
+
+* ensure streams are always closed ([88c6253](https://github.com/aiinbx/aiinbx-py/commit/88c62534172f141a2e010f7f839d7f41c5d76421))
+
 ## 0.136.0 (2025-11-28)
 
 Full Changelog: [v0.135.0...v0.136.0](https://github.com/aiinbx/aiinbx-py/compare/v0.135.0...v0.136.0)
