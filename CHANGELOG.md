@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.194.0 (2025-12-03)
+
+Full Changelog: [v0.193.0...v0.194.0](https://github.com/aiinbx/aiinbx-py/compare/v0.193.0...v0.194.0)
+
+### Features
+
+* **api:** api update ([8996b90](https://github.com/aiinbx/aiinbx-py/commit/8996b90d7fa3905f64adc1813e3830ee7bd96a80))
+
+
+### Chores
+
+* **docs:** use environment variables for authentication in code snippets ([d8471a9](https://github.com/aiinbx/aiinbx-py/commit/d8471a9f8c4cf903090ecd69208047392bd571f3))
+* **internal:** codegen related update ([b5100ac](https://github.com/aiinbx/aiinbx-py/commit/b5100ac4d999efc9152ae9dd977380489bcc8a98))
+* update lockfile ([fc736ad](https://github.com/aiinbx/aiinbx-py/commit/fc736ada56e81b991fd68a0eacfeaaa173926166))
+
 ## 0.193.0 (2025-12-03)
 
 Full Changelog: [v0.192.0...v0.193.0](https://github.com/aiinbx/aiinbx-py/compare/v0.192.0...v0.193.0)
