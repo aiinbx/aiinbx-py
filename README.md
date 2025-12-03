@@ -79,6 +79,7 @@ pip install aiinbx[aiohttp]
 Then you can enable it by instantiating the client with `http_client=DefaultAioHttpClient()`:
 
 ```python
+import os
 import asyncio
 from aiinbx import DefaultAioHttpClient
 from aiinbx import AsyncAIInbx
@@ -86,7 +87,7 @@ from aiinbx import AsyncAIInbx
 
 async def main() -> None:
     async with AsyncAIInbx(
-        api_key="My API Key",
+        api_key=os.environ.get("AI_INBX_API_KEY"),  # This is the default and can be omitted
         http_client=DefaultAioHttpClient(),
     ) as client:
         response = await client.threads.search()
