@@ -1,6 +1,6 @@
 [project]
 name = "aiinbx"
-version = "0.196.0"
+version = "0.197.0"
 description = "The official Python library for the AIInbx API"
 dynamic = ["readme"]
 license = "Apache-2.0"
