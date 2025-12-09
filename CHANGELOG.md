@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.205.1 (2025-12-09)
+
+Full Changelog: [v0.205.0...v0.205.1](https://github.com/aiinbx/aiinbx-py/compare/v0.205.0...v0.205.1)
+
+### Bug Fixes
+
+* **types:** allow pyright to infer TypedDict types within SequenceNotStr ([60a68e7](https://github.com/aiinbx/aiinbx-py/commit/60a68e79093f84f630404fe209801fcc11a560df))
+
 ## 0.205.0 (2025-12-08)
 
 Full Changelog: [v0.204.0...v0.205.0](https://github.com/aiinbx/aiinbx-py/compare/v0.204.0...v0.205.0)
