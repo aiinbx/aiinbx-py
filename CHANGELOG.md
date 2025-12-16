@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.220.0 (2025-12-16)
+
+Full Changelog: [v0.219.0...v0.220.0](https://github.com/aiinbx/aiinbx-py/compare/v0.219.0...v0.220.0)
+
+### Features
+
+* **api:** api update ([e4ced7e](https://github.com/aiinbx/aiinbx-py/commit/e4ced7ea8cd82eaf78dfb286e359d3be94823275))
+
+
+### Chores
+
+* **internal:** add missing files argument to base client ([a11c7d9](https://github.com/aiinbx/aiinbx-py/commit/a11c7d9b4181341f10c827605d957895f39be6bb))
+
 ## 0.219.0 (2025-12-14)
 
 Full Changelog: [v0.218.0...v0.219.0](https://github.com/aiinbx/aiinbx-py/compare/v0.218.0...v0.219.0)
