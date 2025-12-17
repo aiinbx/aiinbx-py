@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.224.0 (2025-12-17)
+
+Full Changelog: [v0.223.0...v0.224.0](https://github.com/aiinbx/aiinbx-py/compare/v0.223.0...v0.224.0)
+
+### Features
+
+* **api:** api update ([7b466d4](https://github.com/aiinbx/aiinbx-py/commit/7b466d4b61ca7e64d11457febbd77b943408019e))
+
+
+### Chores
+
+* speedup initial import ([8bdae09](https://github.com/aiinbx/aiinbx-py/commit/8bdae096cea1f3f975729ba6daa759852fe5e656))
+
 ## 0.223.0 (2025-12-16)
 
 Full Changelog: [v0.222.0...v0.223.0](https://github.com/aiinbx/aiinbx-py/compare/v0.222.0...v0.223.0)
