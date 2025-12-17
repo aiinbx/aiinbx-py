@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from typing import Any, Mapping
+from typing import TYPE_CHECKING, Any, Mapping
 from typing_extensions import Self, override
 
 import httpx
@@ -20,8 +20,8 @@ from ._types import (
     not_given,
 )
 from ._utils import is_given, get_async_library
+from ._compat import cached_property
 from ._version import __version__
-from .resources import meta, emails, domains, threads, webhooks
 from ._streaming import Stream as Stream, AsyncStream as AsyncStream
 from ._exceptions import AIInbxError, APIStatusError
 from ._base_client import (
@@ -30,18 +30,18 @@ from ._base_client import (
     AsyncAPIClient,
 )
 
+if TYPE_CHECKING:
+    from .resources import meta, emails, domains, threads
+    from .resources.meta import MetaResource, AsyncMetaResource
+    from .resources.emails import EmailsResource, AsyncEmailsResource
+    from .resources.domains import DomainsResource, AsyncDomainsResource
+    from .resources.threads import ThreadsResource, AsyncThreadsResource
+    from .resources.webhooks import WebhooksResource, AsyncWebhooksResource
+
 __all__ = ["Timeout", "Transport", "ProxiesTypes", "RequestOptions", "AIInbx", "AsyncAIInbx", "Client", "AsyncClient"]
 
 
 class AIInbx(SyncAPIClient):
-    threads: threads.ThreadsResource
-    emails: emails.EmailsResource
-    domains: domains.DomainsResource
-    webhooks: webhooks.WebhooksResource
-    meta: meta.MetaResource
-    with_raw_response: AIInbxWithRawResponse
-    with_streaming_response: AIInbxWithStreamedResponse
-
     # client options
     api_key: str
 
@@ -96,13 +96,43 @@ class AIInbx(SyncAPIClient):
             _strict_response_validation=_strict_response_validation,
         )
 
-        self.threads = threads.ThreadsResource(self)
-        self.emails = emails.EmailsResource(self)
-        self.domains = domains.DomainsResource(self)
-        self.webhooks = webhooks.WebhooksResource(self)
-        self.meta = meta.MetaResource(self)
-        self.with_raw_response = AIInbxWithRawResponse(self)
-        self.with_streaming_response = AIInbxWithStreamedResponse(self)
+    @cached_property
+    def threads(self) -> ThreadsResource:
+        from .resources.threads import ThreadsResource
+
+        return ThreadsResource(self)
+
+    @cached_property
+    def emails(self) -> EmailsResource:
+        from .resources.emails import EmailsResource
+
+        return EmailsResource(self)
+
+    @cached_property
+    def domains(self) -> DomainsResource:
+        from .resources.domains import DomainsResource
+
+        return DomainsResource(self)
+
+    @cached_property
+    def webhooks(self) -> WebhooksResource:
+        from .resources.webhooks import WebhooksResource
+
+        return WebhooksResource(self)
+
+    @cached_property
+    def meta(self) -> MetaResource:
+        from .resources.meta import MetaResource
+
+        return MetaResource(self)
+
+    @cached_property
+    def with_raw_response(self) -> AIInbxWithRawResponse:
+        return AIInbxWithRawResponse(self)
+
+    @cached_property
+    def with_streaming_response(self) -> AIInbxWithStreamedResponse:
+        return AIInbxWithStreamedResponse(self)
 
     @property
     @override
@@ -210,14 +240,6 @@ class AIInbx(SyncAPIClient):
 
 
 class AsyncAIInbx(AsyncAPIClient):
-    threads: threads.AsyncThreadsResource
-    emails: emails.AsyncEmailsResource
-    domains: domains.AsyncDomainsResource
-    webhooks: webhooks.AsyncWebhooksResource
-    meta: meta.AsyncMetaResource
-    with_raw_response: AsyncAIInbxWithRawResponse
-    with_streaming_response: AsyncAIInbxWithStreamedResponse
-
     # client options
     api_key: str
 
@@ -272,13 +294,43 @@ class AsyncAIInbx(AsyncAPIClient):
             _strict_response_validation=_strict_response_validation,
         )
 
-        self.threads = threads.AsyncThreadsResource(self)
-        self.emails = emails.AsyncEmailsResource(self)
-        self.domains = domains.AsyncDomainsResource(self)
-        self.webhooks = webhooks.AsyncWebhooksResource(self)
-        self.meta = meta.AsyncMetaResource(self)
-        self.with_raw_response = AsyncAIInbxWithRawResponse(self)
-        self.with_streaming_response = AsyncAIInbxWithStreamedResponse(self)
+    @cached_property
+    def threads(self) -> AsyncThreadsResource:
+        from .resources.threads import AsyncThreadsResource
+
+        return AsyncThreadsResource(self)
+
+    @cached_property
+    def emails(self) -> AsyncEmailsResource:
+        from .resources.emails import AsyncEmailsResource
+
+        return AsyncEmailsResource(self)
+
+    @cached_property
+    def domains(self) -> AsyncDomainsResource:
+        from .resources.domains import AsyncDomainsResource
+
+        return AsyncDomainsResource(self)
+
+    @cached_property
+    def webhooks(self) -> AsyncWebhooksResource:
+        from .resources.webhooks import AsyncWebhooksResource
+
+        return AsyncWebhooksResource(self)
+
+    @cached_property
+    def meta(self) -> AsyncMetaResource:
+        from .resources.meta import AsyncMetaResource
+
+        return AsyncMetaResource(self)
+
+    @cached_property
+    def with_raw_response(self) -> AsyncAIInbxWithRawResponse:
+        return AsyncAIInbxWithRawResponse(self)
+
+    @cached_property
+    def with_streaming_response(self) -> AsyncAIInbxWithStreamedResponse:
+        return AsyncAIInbxWithStreamedResponse(self)
 
     @property
     @override
@@ -386,35 +438,127 @@ class AsyncAIInbx(AsyncAPIClient):
 
 
 class AIInbxWithRawResponse:
+    _client: AIInbx
+
     def __init__(self, client: AIInbx) -> None:
-        self.threads = threads.ThreadsResourceWithRawResponse(client.threads)
-        self.emails = emails.EmailsResourceWithRawResponse(client.emails)
-        self.domains = domains.DomainsResourceWithRawResponse(client.domains)
-        self.meta = meta.MetaResourceWithRawResponse(client.meta)
+        self._client = client
+
+    @cached_property
+    def threads(self) -> threads.ThreadsResourceWithRawResponse:
+        from .resources.threads import ThreadsResourceWithRawResponse
+
+        return ThreadsResourceWithRawResponse(self._client.threads)
+
+    @cached_property
+    def emails(self) -> emails.EmailsResourceWithRawResponse:
+        from .resources.emails import EmailsResourceWithRawResponse
+
+        return EmailsResourceWithRawResponse(self._client.emails)
+
+    @cached_property
+    def domains(self) -> domains.DomainsResourceWithRawResponse:
+        from .resources.domains import DomainsResourceWithRawResponse
+
+        return DomainsResourceWithRawResponse(self._client.domains)
+
+    @cached_property
+    def meta(self) -> meta.MetaResourceWithRawResponse:
+        from .resources.meta import MetaResourceWithRawResponse
+
+        return MetaResourceWithRawResponse(self._client.meta)
 
 
 class AsyncAIInbxWithRawResponse:
+    _client: AsyncAIInbx
+
     def __init__(self, client: AsyncAIInbx) -> None:
-        self.threads = threads.AsyncThreadsResourceWithRawResponse(client.threads)
-        self.emails = emails.AsyncEmailsResourceWithRawResponse(client.emails)
-        self.domains = domains.AsyncDomainsResourceWithRawResponse(client.domains)
-        self.meta = meta.AsyncMetaResourceWithRawResponse(client.meta)
+        self._client = client
+
+    @cached_property
+    def threads(self) -> threads.AsyncThreadsResourceWithRawResponse:
+        from .resources.threads import AsyncThreadsResourceWithRawResponse
+
+        return AsyncThreadsResourceWithRawResponse(self._client.threads)
+
+    @cached_property
+    def emails(self) -> emails.AsyncEmailsResourceWithRawResponse:
+        from .resources.emails import AsyncEmailsResourceWithRawResponse
+
+        return AsyncEmailsResourceWithRawResponse(self._client.emails)
+
+    @cached_property
+    def domains(self) -> domains.AsyncDomainsResourceWithRawResponse:
+        from .resources.domains import AsyncDomainsResourceWithRawResponse
+
+        return AsyncDomainsResourceWithRawResponse(self._client.domains)
+
+    @cached_property
+    def meta(self) -> meta.AsyncMetaResourceWithRawResponse:
+        from .resources.meta import AsyncMetaResourceWithRawResponse
+
+        return AsyncMetaResourceWithRawResponse(self._client.meta)
 
 
 class AIInbxWithStreamedResponse:
+    _client: AIInbx
+
     def __init__(self, client: AIInbx) -> None:
-        self.threads = threads.ThreadsResourceWithStreamingResponse(client.threads)
-        self.emails = emails.EmailsResourceWithStreamingResponse(client.emails)
-        self.domains = domains.DomainsResourceWithStreamingResponse(client.domains)
-        self.meta = meta.MetaResourceWithStreamingResponse(client.meta)
+        self._client = client
+
+    @cached_property
+    def threads(self) -> threads.ThreadsResourceWithStreamingResponse:
+        from .resources.threads import ThreadsResourceWithStreamingResponse
+
+        return ThreadsResourceWithStreamingResponse(self._client.threads)
+
+    @cached_property
+    def emails(self) -> emails.EmailsResourceWithStreamingResponse:
+        from .resources.emails import EmailsResourceWithStreamingResponse
+
+        return EmailsResourceWithStreamingResponse(self._client.emails)
+
+    @cached_property
+    def domains(self) -> domains.DomainsResourceWithStreamingResponse:
+        from .resources.domains import DomainsResourceWithStreamingResponse
+
+        return DomainsResourceWithStreamingResponse(self._client.domains)
+
+    @cached_property
+    def meta(self) -> meta.MetaResourceWithStreamingResponse:
+        from .resources.meta import MetaResourceWithStreamingResponse
+
+        return MetaResourceWithStreamingResponse(self._client.meta)
 
 
 class AsyncAIInbxWithStreamedResponse:
+    _client: AsyncAIInbx
+
     def __init__(self, client: AsyncAIInbx) -> None:
-        self.threads = threads.AsyncThreadsResourceWithStreamingResponse(client.threads)
-        self.emails = emails.AsyncEmailsResourceWithStreamingResponse(client.emails)
-        self.domains = domains.AsyncDomainsResourceWithStreamingResponse(client.domains)
-        self.meta = meta.AsyncMetaResourceWithStreamingResponse(client.meta)
+        self._client = client
+
+    @cached_property
+    def threads(self) -> threads.AsyncThreadsResourceWithStreamingResponse:
+        from .resources.threads import AsyncThreadsResourceWithStreamingResponse
+
+        return AsyncThreadsResourceWithStreamingResponse(self._client.threads)
+
+    @cached_property
+    def emails(self) -> emails.AsyncEmailsResourceWithStreamingResponse:
+        from .resources.emails import AsyncEmailsResourceWithStreamingResponse
+
+        return AsyncEmailsResourceWithStreamingResponse(self._client.emails)
+
+    @cached_property
+    def domains(self) -> domains.AsyncDomainsResourceWithStreamingResponse:
+        from .resources.domains import AsyncDomainsResourceWithStreamingResponse
+
+        return AsyncDomainsResourceWithStreamingResponse(self._client.domains)
+
+    @cached_property
+    def meta(self) -> meta.AsyncMetaResourceWithStreamingResponse:
+        from .resources.meta import AsyncMetaResourceWithStreamingResponse
+
+        return AsyncMetaResourceWithStreamingResponse(self._client.meta)
 
 
 Client = AIInbx
