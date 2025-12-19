@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.227.0 (2025-12-19)
+
+Full Changelog: [v0.226.0...v0.227.0](https://github.com/aiinbx/aiinbx-py/compare/v0.226.0...v0.227.0)
+
+### Features
+
+* **api:** api update ([3ae2f08](https://github.com/aiinbx/aiinbx-py/commit/3ae2f08640e85f460e9a3d708d84bef9cbef8bcb))
+
+
+### Chores
+
+* **internal:** add `--fix` argument to lint script ([1af0379](https://github.com/aiinbx/aiinbx-py/commit/1af0379356c3f03207ebbff709c7aac920764001))
+
 ## 0.226.0 (2025-12-18)
 
 Full Changelog: [v0.225.1...v0.226.0](https://github.com/aiinbx/aiinbx-py/compare/v0.225.1...v0.226.0)
