@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.286.0 (2026-01-07)
+
+Full Changelog: [v0.285.0...v0.286.0](https://github.com/aiinbx/aiinbx-py/compare/v0.285.0...v0.286.0)
+
+### Features
+
+* **api:** api update ([98830c2](https://github.com/aiinbx/aiinbx-py/commit/98830c27455d2fff942e6475154e14796f2fa8b7))
+
+
+### Documentation
+
+* prominently feature MCP server setup in root SDK readmes ([3df28c1](https://github.com/aiinbx/aiinbx-py/commit/3df28c1a1fde175530de2eca9a3574fccf26ac23))
+
 ## 0.285.0 (2026-01-06)
 
 Full Changelog: [v0.284.0...v0.285.0](https://github.com/aiinbx/aiinbx-py/compare/v0.284.0...v0.285.0)
