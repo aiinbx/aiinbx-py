@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.304.0 (2026-01-14)
+
+Full Changelog: [v0.303.0...v0.304.0](https://github.com/aiinbx/aiinbx-py/compare/v0.303.0...v0.304.0)
+
+### Features
+
+* **api:** api update ([9bb6b4e](https://github.com/aiinbx/aiinbx-py/commit/9bb6b4e3141a46ed68490ef81489ae08433f2366))
+* **client:** add support for binary request streaming ([02248af](https://github.com/aiinbx/aiinbx-py/commit/02248af6ba4e738898c1dfe668d2f4a029cbbd72))
+
 ## 0.303.0 (2026-01-13)
 
 Full Changelog: [v0.302.0...v0.303.0](https://github.com/aiinbx/aiinbx-py/compare/v0.302.0...v0.303.0)
