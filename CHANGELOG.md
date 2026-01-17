@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.312.0 (2026-01-17)
+
+Full Changelog: [v0.311.0...v0.312.0](https://github.com/aiinbx/aiinbx-py/compare/v0.311.0...v0.312.0)
+
+### Features
+
+* **api:** api update ([c914564](https://github.com/aiinbx/aiinbx-py/commit/c91456484c84837a03d8f68415d8113d3e39812c))
+
+
+### Chores
+
+* **internal:** update `actions/checkout` version ([46e6739](https://github.com/aiinbx/aiinbx-py/commit/46e67394d5f674534aee6d157d2ba835410f3384))
+
 ## 0.311.0 (2026-01-16)
 
 Full Changelog: [v0.310.0...v0.311.0](https://github.com/aiinbx/aiinbx-py/compare/v0.310.0...v0.311.0)
