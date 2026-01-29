@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.344.1 (2026-01-29)
+
+Full Changelog: [v0.344.0...v0.344.1](https://github.com/aiinbx/aiinbx-py/compare/v0.344.0...v0.344.1)
+
+### Bug Fixes
+
+* **docs:** fix mcp installation instructions for remote servers ([2412e56](https://github.com/aiinbx/aiinbx-py/commit/2412e56eb5d8581c27410751aa7b11e171237b18))
+
 ## 0.344.0 (2026-01-25)
 
 Full Changelog: [v0.343.0...v0.344.0](https://github.com/aiinbx/aiinbx-py/compare/v0.343.0...v0.344.0)
