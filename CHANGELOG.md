@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.349.0 (2026-01-30)
+
+Full Changelog: [v0.348.0...v0.349.0](https://github.com/aiinbx/aiinbx-py/compare/v0.348.0...v0.349.0)
+
+### Features
+
+* **client:** add custom JSON encoder for extended type support ([c4c3b87](https://github.com/aiinbx/aiinbx-py/commit/c4c3b87f91c4287f8ed851e81683e68d87b9c8ba))
+
 ## 0.348.0 (2026-01-29)
 
 Full Changelog: [v0.347.0...v0.348.0](https://github.com/aiinbx/aiinbx-py/compare/v0.347.0...v0.348.0)
