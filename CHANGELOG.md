@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.398.0 (2026-02-08)
+
+Full Changelog: [v0.397.0...v0.398.0](https://github.com/aiinbx/aiinbx-py/compare/v0.397.0...v0.398.0)
+
+### Features
+
+* **api:** api update ([fcfa1db](https://github.com/aiinbx/aiinbx-py/commit/fcfa1db4fefe256c63fe62543518fce8717778b6))
+
 ## 0.397.0 (2026-02-07)
 
 Full Changelog: [v0.396.0...v0.397.0](https://github.com/aiinbx/aiinbx-py/compare/v0.396.0...v0.397.0)
