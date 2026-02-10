@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.404.0 (2026-02-10)
+
+Full Changelog: [v0.403.0...v0.404.0](https://github.com/aiinbx/aiinbx-py/compare/v0.403.0...v0.404.0)
+
+### Features
+
+* **api:** api update ([321e867](https://github.com/aiinbx/aiinbx-py/commit/321e8673fde50f2139e894ea22818b9ac775d5ae))
+
+
+### Chores
+
+* **internal:** bump dependencies ([c361540](https://github.com/aiinbx/aiinbx-py/commit/c361540a05a5aa0ba04ecaa371fd1749aee88741))
+
 ## 0.403.0 (2026-02-10)
 
 Full Changelog: [v0.402.0...v0.403.0](https://github.com/aiinbx/aiinbx-py/compare/v0.402.0...v0.403.0)
