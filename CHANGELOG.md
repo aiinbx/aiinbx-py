@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.408.0 (2026-02-12)
+
+Full Changelog: [v0.407.0...v0.408.0](https://github.com/aiinbx/aiinbx-py/compare/v0.407.0...v0.408.0)
+
+### Features
+
+* **api:** api update ([82032d4](https://github.com/aiinbx/aiinbx-py/commit/82032d4ceb5d10689dfe5b0128f95ed50818d828))
+
+
+### Chores
+
+* **internal:** fix lint error on Python 3.14 ([4088794](https://github.com/aiinbx/aiinbx-py/commit/40887943195a6ebb841b3078714d3d9a764f1d82))
+
 ## 0.407.0 (2026-02-11)
 
 Full Changelog: [v0.406.0...v0.407.0](https://github.com/aiinbx/aiinbx-py/compare/v0.406.0...v0.407.0)
