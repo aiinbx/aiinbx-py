@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.461.0 (2026-02-20)
+
+Full Changelog: [v0.460.0...v0.461.0](https://github.com/aiinbx/aiinbx-py/compare/v0.460.0...v0.461.0)
+
+### Features
+
+* **api:** api update ([fc50fb8](https://github.com/aiinbx/aiinbx-py/commit/fc50fb86824537eba34bd406088d6c8f30f3a461))
+* **api:** api update ([38080d4](https://github.com/aiinbx/aiinbx-py/commit/38080d4c6d4655f963db894ddf386bcb6d5419d2))
+* **api:** api update ([399286d](https://github.com/aiinbx/aiinbx-py/commit/399286db999ba4b08c7904b1e84fa0998b959824))
+* **api:** api update ([c135310](https://github.com/aiinbx/aiinbx-py/commit/c1353108f022468258a485c6ef37268a2aa62646))
+* **api:** api update ([89c6fc9](https://github.com/aiinbx/aiinbx-py/commit/89c6fc9e22f487a4889cb8a7bd0c6946c86f0261))
+* **api:** api update ([459609a](https://github.com/aiinbx/aiinbx-py/commit/459609acc15319798dfeedf88e4f782c9c84a018))
+* **api:** api update ([d6d3588](https://github.com/aiinbx/aiinbx-py/commit/d6d35885b712c4f4ba5c107be43983a8d77b70f9))
+* **api:** api update ([08aa6f1](https://github.com/aiinbx/aiinbx-py/commit/08aa6f1e3d41bd4f5f40558ba54b9bd2cecca82e))
+* **api:** api update ([f3b1cc4](https://github.com/aiinbx/aiinbx-py/commit/f3b1cc4f63c96269d130c24031df6199c86b629a))
+* **api:** api update ([e8b5241](https://github.com/aiinbx/aiinbx-py/commit/e8b52412bae04e4a1b72b4efc694dab8567be4e6))
+* **api:** api update ([d0bb8fd](https://github.com/aiinbx/aiinbx-py/commit/d0bb8fdeb2c86767dd17d35622f6d801e9c62a09))
+* **api:** api update ([a38ee82](https://github.com/aiinbx/aiinbx-py/commit/a38ee82b3a4944907e83f8a66c5058054cc419bc))
+* **api:** api update ([03175cd](https://github.com/aiinbx/aiinbx-py/commit/03175cdbc58d4410d9ec1dd28f70ef491efd7888))
+* **api:** api update ([1ded92f](https://github.com/aiinbx/aiinbx-py/commit/1ded92fe3d3c7786aa74711d5ce763557bdfa388))
+
+
+### Chores
+
+* **internal:** remove mock server code ([1800315](https://github.com/aiinbx/aiinbx-py/commit/1800315a4cb5c4ec65d788c427952baa41e401c0))
+* update mock server docs ([a79c639](https://github.com/aiinbx/aiinbx-py/commit/a79c639422aa422a7c6dcec472d3cd12779059d4))
+
 ## 0.460.0 (2026-02-18)
 
 Full Changelog: [v0.459.0...v0.460.0](https://github.com/aiinbx/aiinbx-py/compare/v0.459.0...v0.460.0)
