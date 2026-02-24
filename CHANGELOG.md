@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.497.0 (2026-02-24)
+
+Full Changelog: [v0.496.0...v0.497.0](https://github.com/aiinbx/aiinbx-py/compare/v0.496.0...v0.497.0)
+
+### Features
+
+* **api:** api update ([7bdad09](https://github.com/aiinbx/aiinbx-py/commit/7bdad09c6f8c0a95516946c402c19d811947f5f0))
+
+
+### Chores
+
+* **internal:** add request options to SSE classes ([cc15103](https://github.com/aiinbx/aiinbx-py/commit/cc1510393136daaf9505b1f3ed48010a89cba9ba))
+* **internal:** make `test_proxy_environment_variables` more resilient ([2b00a65](https://github.com/aiinbx/aiinbx-py/commit/2b00a65eecb0a3752b74765bc82c72b26059ecc9))
+
 ## 0.496.0 (2026-02-24)
 
 Full Changelog: [v0.495.0...v0.496.0](https://github.com/aiinbx/aiinbx-py/compare/v0.495.0...v0.496.0)
