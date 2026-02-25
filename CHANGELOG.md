@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.502.0 (2026-02-25)
+
+Full Changelog: [v0.501.0...v0.502.0](https://github.com/aiinbx/aiinbx-py/compare/v0.501.0...v0.502.0)
+
+### Features
+
+* **api:** api update ([40c81fa](https://github.com/aiinbx/aiinbx-py/commit/40c81fac35b6521af22a46cff15f5a4156a7e313))
+
+
+### Chores
+
+* **internal:** make `test_proxy_environment_variables` more resilient to env ([b44bc1d](https://github.com/aiinbx/aiinbx-py/commit/b44bc1d1b79d608fd81dd1e23c33b0f9fe711800))
+
 ## 0.501.0 (2026-02-24)
 
 Full Changelog: [v0.500.0...v0.501.0](https://github.com/aiinbx/aiinbx-py/compare/v0.500.0...v0.501.0)
