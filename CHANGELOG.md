@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.591.0 (2026-03-05)
+
+Full Changelog: [v0.590.0...v0.591.0](https://github.com/aiinbx/aiinbx-py/compare/v0.590.0...v0.591.0)
+
+### Features
+
+* **api:** api update ([1dc30de](https://github.com/aiinbx/aiinbx-py/commit/1dc30de179922f5a1cc18bb3c4da87399b20ae15))
+
 ## 0.590.0 (2026-03-05)
 
 Full Changelog: [v0.589.0...v0.590.0](https://github.com/aiinbx/aiinbx-py/compare/v0.589.0...v0.590.0)
