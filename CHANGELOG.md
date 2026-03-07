@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.608.0 (2026-03-07)
+
+Full Changelog: [v0.607.0...v0.608.0](https://github.com/aiinbx/aiinbx-py/compare/v0.607.0...v0.608.0)
+
+### Features
+
+* **api:** api update ([631c4ef](https://github.com/aiinbx/aiinbx-py/commit/631c4efb119608c0e45609df4b29b126d0b1b249))
+
+
+### Chores
+
+* **ci:** skip uploading artifacts on stainless-internal branches ([54b7b89](https://github.com/aiinbx/aiinbx-py/commit/54b7b89a0da269e8a0a450d01312781490186fa3))
+
 ## 0.607.0 (2026-03-07)
 
 Full Changelog: [v0.606.0...v0.607.0](https://github.com/aiinbx/aiinbx-py/compare/v0.606.0...v0.607.0)
