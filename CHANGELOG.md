@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.623.0 (2026-03-09)
+
+Full Changelog: [v0.622.0...v0.623.0](https://github.com/aiinbx/aiinbx-py/compare/v0.622.0...v0.623.0)
+
+### Features
+
+* **api:** api update ([3deecad](https://github.com/aiinbx/aiinbx-py/commit/3deecade556f3a19db74b2684ae4758b01857fae))
+
 ## 0.622.0 (2026-03-09)
 
 Full Changelog: [v0.621.0...v0.622.0](https://github.com/aiinbx/aiinbx-py/compare/v0.621.0...v0.622.0)
