@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.690.1 (2026-03-17)
+
+Full Changelog: [v0.690.0...v0.690.1](https://github.com/aiinbx/aiinbx-py/compare/v0.690.0...v0.690.1)
+
+### Bug Fixes
+
+* **pydantic:** do not pass `by_alias` unless set ([fc8e00c](https://github.com/aiinbx/aiinbx-py/commit/fc8e00c8dd3a8777ccc1f2ff8dbce4202fc7488a))
+
 ## 0.690.0 (2026-03-17)
 
 Full Changelog: [v0.689.0...v0.690.0](https://github.com/aiinbx/aiinbx-py/compare/v0.689.0...v0.690.0)
