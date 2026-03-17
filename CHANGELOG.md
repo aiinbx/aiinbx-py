@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.690.2 (2026-03-17)
+
+Full Changelog: [v0.690.1...v0.690.2](https://github.com/aiinbx/aiinbx-py/compare/v0.690.1...v0.690.2)
+
+### Bug Fixes
+
+* **deps:** bump minimum typing-extensions version ([523f766](https://github.com/aiinbx/aiinbx-py/commit/523f7664584d57d9624e79308896752302821869))
+
 ## 0.690.1 (2026-03-17)
 
 Full Changelog: [v0.690.0...v0.690.1](https://github.com/aiinbx/aiinbx-py/compare/v0.690.0...v0.690.1)
