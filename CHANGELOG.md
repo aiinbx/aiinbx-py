@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.691.0 (2026-03-17)
+
+Full Changelog: [v0.690.2...v0.691.0](https://github.com/aiinbx/aiinbx-py/compare/v0.690.2...v0.691.0)
+
+### Features
+
+* **api:** api update ([a93a6ea](https://github.com/aiinbx/aiinbx-py/commit/a93a6eab858bb99e2c2bbd88f5316f01dba2bd15))
+
+
+### Chores
+
+* **internal:** tweak CI branches ([dc1b213](https://github.com/aiinbx/aiinbx-py/commit/dc1b213a4f3a9c9a0356d1d5e13b5eda13cc4055))
+
 ## 0.690.2 (2026-03-17)
 
 Full Changelog: [v0.690.1...v0.690.2](https://github.com/aiinbx/aiinbx-py/compare/v0.690.1...v0.690.2)
