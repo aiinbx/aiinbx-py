@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.719.1 (2026-03-20)
+
+Full Changelog: [v0.719.0...v0.719.1](https://github.com/aiinbx/aiinbx-py/compare/v0.719.0...v0.719.1)
+
+### Bug Fixes
+
+* sanitize endpoint path params ([aa5e27c](https://github.com/aiinbx/aiinbx-py/commit/aa5e27c9ba867fdfbb9fa5a5c66bc18777579caf))
+
 ## 0.719.0 (2026-03-20)
 
 Full Changelog: [v0.718.0...v0.719.0](https://github.com/aiinbx/aiinbx-py/compare/v0.718.0...v0.719.0)
