@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.750.0 (2026-03-24)
+
+Full Changelog: [v0.749.0...v0.750.0](https://github.com/aiinbx/aiinbx-py/compare/v0.749.0...v0.750.0)
+
+### Features
+
+* **api:** api update ([1fb0a50](https://github.com/aiinbx/aiinbx-py/commit/1fb0a5057d102cc14a5a9de137cacd3fef74cc31))
+
+
+### Chores
+
+* **internal:** update gitignore ([1f1dc3c](https://github.com/aiinbx/aiinbx-py/commit/1f1dc3cd8834cfd1e3de762e0dab14fc1a95e1ef))
+
 ## 0.749.0 (2026-03-24)
 
 Full Changelog: [v0.748.0...v0.749.0](https://github.com/aiinbx/aiinbx-py/compare/v0.748.0...v0.749.0)
