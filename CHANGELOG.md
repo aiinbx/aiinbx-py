@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.758.0 (2026-03-25)
+
+Full Changelog: [v0.757.0...v0.758.0](https://github.com/aiinbx/aiinbx-py/compare/v0.757.0...v0.758.0)
+
+### Features
+
+* **api:** api update ([9027c48](https://github.com/aiinbx/aiinbx-py/commit/9027c4830cfbe70ea163e6163117597a03eac598))
+
+
+### Chores
+
+* **ci:** skip lint on metadata-only changes ([cbaecc2](https://github.com/aiinbx/aiinbx-py/commit/cbaecc26df97bf30e4eec2a5b6ecd45843a3952a))
+
 ## 0.757.0 (2026-03-24)
 
 Full Changelog: [v0.756.0...v0.757.0](https://github.com/aiinbx/aiinbx-py/compare/v0.756.0...v0.757.0)
