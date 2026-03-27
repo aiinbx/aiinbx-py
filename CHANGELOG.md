@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.774.0 (2026-03-27)
+
+Full Changelog: [v0.773.0...v0.774.0](https://github.com/aiinbx/aiinbx-py/compare/v0.773.0...v0.774.0)
+
+### Features
+
+* **internal:** implement indices array format for query and form serialization ([5e89eec](https://github.com/aiinbx/aiinbx-py/commit/5e89eec4d0f591c1a6a39f464fe071dc870653b2))
+
 ## 0.773.0 (2026-03-27)
 
 Full Changelog: [v0.772.0...v0.773.0](https://github.com/aiinbx/aiinbx-py/compare/v0.772.0...v0.773.0)
