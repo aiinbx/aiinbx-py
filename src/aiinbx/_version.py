@@ -1,4 +1,4 @@
 # File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 
 __title__ = "aiinbx"
-__version__ = "0.821.0"  # x-release-please-version
+__version__ = "0.822.0"  # x-release-please-version
