@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.827.1 (2026-04-08)
+
+Full Changelog: [v0.827.0...v0.827.1](https://github.com/aiinbx/aiinbx-py/compare/v0.827.0...v0.827.1)
+
+### Bug Fixes
+
+* **client:** preserve hardcoded query params when merging with user params ([fcecfe1](https://github.com/aiinbx/aiinbx-py/commit/fcecfe10594caf18e0925ac2eb262aba84df91e3))
+
 ## 0.827.0 (2026-04-03)
 
 Full Changelog: [v0.826.0...v0.827.0](https://github.com/aiinbx/aiinbx-py/compare/v0.826.0...v0.827.0)
