@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.827.2 (2026-04-11)
+
+Full Changelog: [v0.827.1...v0.827.2](https://github.com/aiinbx/aiinbx-py/compare/v0.827.1...v0.827.2)
+
+### Bug Fixes
+
+* ensure file data are only sent as 1 parameter ([589d5ef](https://github.com/aiinbx/aiinbx-py/commit/589d5ef12920f38e7e8a12e22b116fb96b894bf8))
+
 ## 0.827.1 (2026-04-08)
 
 Full Changelog: [v0.827.0...v0.827.1](https://github.com/aiinbx/aiinbx-py/compare/v0.827.0...v0.827.1)
