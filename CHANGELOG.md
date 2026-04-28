@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.828.0 (2026-04-28)
+
+Full Changelog: [v0.827.2...v0.828.0](https://github.com/aiinbx/aiinbx-py/compare/v0.827.2...v0.828.0)
+
+### Features
+
+* support setting headers via env ([014909e](https://github.com/aiinbx/aiinbx-py/commit/014909e2a3cb86a8472db5fa8048dee15cf980d9))
+
+
+### Bug Fixes
+
+* use correct field name format for multipart file arrays ([d862bd9](https://github.com/aiinbx/aiinbx-py/commit/d862bd9a736a401be9220c460e0a886309ca82ae))
+
+
+### Performance Improvements
+
+* **client:** optimize file structure copying in multipart requests ([6202181](https://github.com/aiinbx/aiinbx-py/commit/6202181c2f2d351c97656a8336ba35a36b978fc2))
+
+
+### Chores
+
+* **internal:** more robust bootstrap script ([60ce28b](https://github.com/aiinbx/aiinbx-py/commit/60ce28b02b4d79964ee03df60bc020587e5d9365))
+
 ## 0.827.2 (2026-04-11)
 
 Full Changelog: [v0.827.1...v0.827.2](https://github.com/aiinbx/aiinbx-py/compare/v0.827.1...v0.827.2)
