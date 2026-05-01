@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.828.1 (2026-05-01)
+
+Full Changelog: [v0.828.0...v0.828.1](https://github.com/aiinbx/aiinbx-py/compare/v0.828.0...v0.828.1)
+
+### Chores
+
+* **internal:** reformat pyproject.toml ([d18c369](https://github.com/aiinbx/aiinbx-py/commit/d18c3694d0deabe0cf589c36987613af63bd1231))
+
 ## 0.828.0 (2026-04-28)
 
 Full Changelog: [v0.827.2...v0.828.0](https://github.com/aiinbx/aiinbx-py/compare/v0.827.2...v0.828.0)
