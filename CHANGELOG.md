@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.829.0 (2026-07-18)
+
+Full Changelog: [v0.828.1...v0.829.0](https://github.com/aiinbx/aiinbx-py/compare/v0.828.1...v0.829.0)
+
+### Features
+
+* **internal/types:** support eagerly validating pydantic iterators ([5b5d158](https://github.com/aiinbx/aiinbx-py/commit/5b5d1580255b8e54882a7ea3c3a9f876fd9aea61))
+* **stlc:** configurable CI runner and private-production-repo support in workflow templates ([2f1347e](https://github.com/aiinbx/aiinbx-py/commit/2f1347eae1f7157819bd6b316423b6783a942ecb))
+
 ## 0.828.1 (2026-05-09)
 
 Full Changelog: [v0.828.0...v0.828.1](https://github.com/aiinbx/aiinbx-py/compare/v0.828.0...v0.828.1)
