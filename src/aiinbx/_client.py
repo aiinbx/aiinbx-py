@@ -1,588 +1,360 @@
-# File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
-
 from __future__ import annotations
 
+import email.utils
 import os
-from typing import TYPE_CHECKING, Any, Mapping
-from typing_extensions import Self, override
+import random
+import time
+from collections.abc import Mapping
+from datetime import datetime, timezone
+from typing import Any, cast
 
 import httpx
+from typing_extensions import Unpack
 
-from . import _exceptions
-from ._qs import Querystring
-from ._types import (
-    Omit,
-    Timeout,
-    NotGiven,
-    Transport,
-    ProxiesTypes,
-    RequestOptions,
-    not_given,
+from ._base import RawResponse
+from ._errors import (
+    APIConnectionError,
+    APIStatusError,
+    APITimeoutError,
+    AuthenticationError,
+    BadRequestError,
+    ConflictError,
+    InternalServerError,
+    NotFoundError,
+    PermissionDeniedError,
+    RateLimitError,
+    UnprocessableEntityError,
 )
-from ._utils import (
-    is_given,
-    is_mapping_t,
-    get_async_library,
+from ._generated.client import (
+    AsyncRawResources,
+    AsyncResources,
+    RawResources,
+    Resources,
+    SharedHeaders,
+    shared_headers,
 )
-from ._compat import cached_property
 from ._version import __version__
-from ._streaming import Stream as Stream, AsyncStream as AsyncStream
-from ._exceptions import AIInbxError, APIStatusError
-from ._base_client import (
-    DEFAULT_MAX_RETRIES,
-    SyncAPIClient,
-    AsyncAPIClient,
-)
+from ._webhooks import Webhooks
 
-if TYPE_CHECKING:
-    from .resources import meta, emails, domains, threads
-    from .resources.meta import MetaResource, AsyncMetaResource
-    from .resources.emails import EmailsResource, AsyncEmailsResource
-    from .resources.domains import DomainsResource, AsyncDomainsResource
-    from .resources.threads import ThreadsResource, AsyncThreadsResource
-    from .resources.webhooks import WebhooksResource, AsyncWebhooksResource
-
-__all__ = ["Timeout", "Transport", "ProxiesTypes", "RequestOptions", "AIInbx", "AsyncAIInbx", "Client", "AsyncClient"]
+DEFAULT_BASE_URL = "https://api.aiinbx.com/api/v2"
+DEFAULT_TIMEOUT = 60.0
+DEFAULT_MAX_RETRIES = 2
+# Worth another try when sending twice cannot act twice; a 429 always is.
+_RETRY_STATUSES = {408}
+# Methods that act the same however often they are sent.
+_IDEMPOTENT_METHODS = {"GET", "HEAD", "PUT", "DELETE", "OPTIONS"}
 
 
-class AIInbx(SyncAPIClient):
-    # client options
-    api_key: str
+def _request_id(headers: Mapping[str, str]) -> str | None:
+    return headers.get("x-request-id") or headers.get("request-id")
+
+
+def _response_request_id(response: httpx.Response, body: Any = None) -> str | None:
+    header_id = _request_id(response.headers)
+    if header_id:
+        return header_id
+    for previous in reversed(response.history):
+        header_id = _request_id(previous.headers)
+        if header_id:
+            return header_id
+    if body is None and response.content:
+        try:
+            body = response.json()
+        except ValueError:
+            body = None
+    value = body.get("request_id") if isinstance(body, dict) else None
+    return value if isinstance(value, str) else None
+
+
+def _replayable(method: str, headers: Mapping[str, str] | None) -> bool:
+    """Whether sending a request again cannot act twice: its method, or its key."""
+    return method.upper() in _IDEMPOTENT_METHODS or any(
+        name.lower() == "idempotency-key" for name in headers or {}
+    )
+
+
+def _should_retry(status: int, replayable: bool) -> bool:
+    return status == 429 or (replayable and (status in _RETRY_STATUSES or status >= 500))
+
+
+def _retry_delay(response: httpx.Response | None, attempt: int) -> float:
+    if response is not None:
+        value = response.headers.get("retry-after")
+        if value:
+            try:
+                return min(max(float(value), 0.0), 60.0)
+            except ValueError:
+                try:
+                    parsed = cast(datetime | None, email.utils.parsedate_to_datetime(value))
+                except (TypeError, ValueError):
+                    parsed = None
+                if parsed is not None:
+                    if parsed.tzinfo is None:
+                        parsed = parsed.replace(tzinfo=timezone.utc)
+                    return min(max((parsed - datetime.now(timezone.utc)).total_seconds(), 0), 60)
+    return cast(float, min(0.5 * (2**attempt), 8.0) * (0.75 + random.random() * 0.5))
+
+
+def _error_from_response(response: httpx.Response) -> APIStatusError:
+    try:
+        body: Any = response.json()
+    except ValueError:
+        body = response.text
+    request_id = _response_request_id(response, body)
+    problem: dict[str, Any] = body if isinstance(body, dict) else {}
+    detail = problem.get("detail")
+    fields = detail if isinstance(detail, dict) else problem
+    if isinstance(detail, str):
+        message = detail
+    else:
+        message = str(
+            fields.get("message")
+            or fields.get("title")
+            or response.reason_phrase
+            or f"HTTP {response.status_code}"
+        )
+    code = fields.get("code")
+    classes: dict[int, type[APIStatusError]] = {
+        400: BadRequestError,
+        401: AuthenticationError,
+        403: PermissionDeniedError,
+        404: NotFoundError,
+        409: ConflictError,
+        422: UnprocessableEntityError,
+        429: RateLimitError,
+    }
+    error_class = classes.get(
+        response.status_code,
+        InternalServerError if response.status_code >= 500 else APIStatusError,
+    )
+    issues = problem.get("issues")
+    return error_class(
+        message,
+        status_code=response.status_code,
+        request_id=request_id,
+        code=code if isinstance(code, str) else None,
+        body=body,
+        headers=response.headers,
+        issues=issues if isinstance(issues, list) else [],
+    )
+
+
+def _raw(response: httpx.Response) -> RawResponse[Any]:
+    return RawResponse(
+        status_code=response.status_code,
+        headers=response.headers,
+        content=response.content,
+        request_id=_response_request_id(response),
+    )
+
+
+class AIInbx(Resources):
+    """Synchronous AI Inbx API client."""
 
     def __init__(
         self,
         *,
         api_key: str | None = None,
-        base_url: str | httpx.URL | None = None,
-        timeout: float | Timeout | None | NotGiven = not_given,
+        base_url: str = DEFAULT_BASE_URL,
+        timeout: float | httpx.Timeout = DEFAULT_TIMEOUT,
         max_retries: int = DEFAULT_MAX_RETRIES,
-        default_headers: Mapping[str, str] | None = None,
-        default_query: Mapping[str, object] | None = None,
-        # Configure a custom httpx client.
-        # We provide a `DefaultHttpxClient` class that you can pass to retain the default values we use for `limits`, `timeout` & `follow_redirects`.
-        # See the [httpx documentation](https://www.python-httpx.org/api/#client) for more details.
         http_client: httpx.Client | None = None,
-        # Enable or disable schema validation for data returned by the API.
-        # When enabled an error APIResponseValidationError is raised
-        # if the API responds with invalid data for the expected schema.
-        #
-        # This parameter may be removed or changed in the future.
-        # If you rely on this feature, please open a GitHub issue
-        # outlining your use-case to help us decide if it should be
-        # part of our public interface in the future.
-        _strict_response_validation: bool = False,
+        default_headers: Mapping[str, str] | None = None,
+        **shared: Unpack[SharedHeaders],
     ) -> None:
-        """Construct a new synchronous AIInbx client instance.
-
-        This automatically infers the `api_key` argument from the `AI_INBX_API_KEY` environment variable if it is not provided.
-        """
-        if api_key is None:
-            api_key = os.environ.get("AI_INBX_API_KEY")
-        if api_key is None:
-            raise AIInbxError(
-                "The api_key client option must be set either by passing api_key to the client or by setting the AI_INBX_API_KEY environment variable"
-            )
+        api_key = api_key or os.getenv("AI_INBX_API_KEY")
+        if not api_key or not api_key.strip():
+            raise ValueError("api_key is required; pass it explicitly or set AI_INBX_API_KEY")
+        if not 0 <= max_retries <= 5:
+            raise ValueError("max_retries must be between 0 and 5")
         self.api_key = api_key
-
-        if base_url is None:
-            base_url = os.environ.get("AI_INBX_BASE_URL")
-        if base_url is None:
-            base_url = f"https://aiinbx.com/api/v1"
-
-        custom_headers_env = os.environ.get("AI_INBX_CUSTOM_HEADERS")
-        if custom_headers_env is not None:
-            parsed: dict[str, str] = {}
-            for line in custom_headers_env.split("\n"):
-                colon = line.find(":")
-                if colon >= 0:
-                    parsed[line[:colon].strip()] = line[colon + 1 :].strip()
-            default_headers = {**parsed, **(default_headers if is_mapping_t(default_headers) else {})}
-
-        super().__init__(
-            version=__version__,
-            base_url=base_url,
-            max_retries=max_retries,
-            timeout=timeout,
-            http_client=http_client,
-            custom_headers=default_headers,
-            custom_query=default_query,
-            _strict_response_validation=_strict_response_validation,
-        )
-
-    @cached_property
-    def threads(self) -> ThreadsResource:
-        from .resources.threads import ThreadsResource
-
-        return ThreadsResource(self)
-
-    @cached_property
-    def emails(self) -> EmailsResource:
-        from .resources.emails import EmailsResource
-
-        return EmailsResource(self)
-
-    @cached_property
-    def domains(self) -> DomainsResource:
-        from .resources.domains import DomainsResource
-
-        return DomainsResource(self)
-
-    @cached_property
-    def webhooks(self) -> WebhooksResource:
-        from .resources.webhooks import WebhooksResource
-
-        return WebhooksResource(self)
-
-    @cached_property
-    def meta(self) -> MetaResource:
-        from .resources.meta import MetaResource
-
-        return MetaResource(self)
-
-    @cached_property
-    def with_raw_response(self) -> AIInbxWithRawResponse:
-        return AIInbxWithRawResponse(self)
-
-    @cached_property
-    def with_streaming_response(self) -> AIInbxWithStreamedResponse:
-        return AIInbxWithStreamedResponse(self)
-
-    @property
-    @override
-    def qs(self) -> Querystring:
-        return Querystring(array_format="comma")
-
-    @property
-    @override
-    def auth_headers(self) -> dict[str, str]:
-        api_key = self.api_key
-        return {"Authorization": f"Bearer {api_key}"}
-
-    @property
-    @override
-    def default_headers(self) -> dict[str, str | Omit]:
-        return {
-            **super().default_headers,
-            "X-Stainless-Async": "false",
-            **self._custom_headers,
+        self.base_url = base_url.rstrip("/")
+        self.timeout = timeout
+        self.max_retries = max_retries
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Accept": "application/json",
+            "User-Agent": f"aiinbx-python/{__version__}",
+            **(default_headers or {}),
+            **shared_headers(shared),
         }
+        self._owns_client = http_client is None
+        self._http = http_client or httpx.Client(headers=headers)
+        if http_client is not None:
+            self._http.headers.update(headers)
+        self.last_request_id: str | None = None
+        Resources.__init__(self, self)
+        self.webhooks = Webhooks()
 
-    def copy(
+    @property
+    def with_raw_response(self) -> RawResources:
+        """The same resources, each call answering with a :class:`RawResponse`."""
+        return RawResources(self)
+
+    def request(
         self,
+        method: str,
+        path: str,
         *,
-        api_key: str | None = None,
-        base_url: str | httpx.URL | None = None,
-        timeout: float | Timeout | None | NotGiven = not_given,
-        http_client: httpx.Client | None = None,
-        max_retries: int | NotGiven = not_given,
-        default_headers: Mapping[str, str] | None = None,
-        set_default_headers: Mapping[str, str] | None = None,
-        default_query: Mapping[str, object] | None = None,
-        set_default_query: Mapping[str, object] | None = None,
-        _extra_kwargs: Mapping[str, Any] = {},
-    ) -> Self:
-        """
-        Create a new client instance re-using the same options given to the current client with optional overriding.
-        """
-        if default_headers is not None and set_default_headers is not None:
-            raise ValueError("The `default_headers` and `set_default_headers` arguments are mutually exclusive")
+        params: Mapping[str, Any] | None = None,
+        json: Mapping[str, Any] | None = None,
+        headers: Mapping[str, str] | None = None,
+        timeout: float | httpx.Timeout | None = None,
+        raw: bool = False,
+        binary: bool = False,
+    ) -> Any:
+        replayable = _replayable(method, headers)
+        response: httpx.Response | None = None
+        for attempt in range(self.max_retries + 1):
+            try:
+                response = self._http.request(
+                    method,
+                    f"{self.base_url}{path}",
+                    params={k: v for k, v in (params or {}).items() if v is not None},
+                    json=json,
+                    headers=headers,
+                    timeout=self.timeout if timeout is None else timeout,
+                    follow_redirects=True,
+                )
+            except httpx.TimeoutException as exc:
+                if not replayable or attempt >= self.max_retries:
+                    raise APITimeoutError("Request timed out") from exc
+                time.sleep(_retry_delay(None, attempt))
+                continue
+            except httpx.RequestError as exc:
+                if not replayable or attempt >= self.max_retries:
+                    raise APIConnectionError("Could not connect to the AI Inbx API") from exc
+                time.sleep(_retry_delay(None, attempt))
+                continue
+            if _should_retry(response.status_code, replayable) and attempt < self.max_retries:
+                time.sleep(_retry_delay(response, attempt))
+                continue
+            break
+        assert response is not None
+        self.last_request_id = _response_request_id(response)
+        if not response.is_success:
+            raise _error_from_response(response)
+        if raw:
+            return _raw(response)
+        if binary:
+            return response.content
+        if response.status_code == 204 or not response.content:
+            return None
+        return response.json()
 
-        if default_query is not None and set_default_query is not None:
-            raise ValueError("The `default_query` and `set_default_query` arguments are mutually exclusive")
+    def close(self) -> None:
+        if self._owns_client:
+            self._http.close()
 
-        headers = self._custom_headers
-        if default_headers is not None:
-            headers = {**headers, **default_headers}
-        elif set_default_headers is not None:
-            headers = set_default_headers
+    def __enter__(self) -> AIInbx:
+        return self
 
-        params = self._custom_query
-        if default_query is not None:
-            params = {**params, **default_query}
-        elif set_default_query is not None:
-            params = set_default_query
-
-        http_client = http_client or self._client
-        return self.__class__(
-            api_key=api_key or self.api_key,
-            base_url=base_url or self.base_url,
-            timeout=self.timeout if isinstance(timeout, NotGiven) else timeout,
-            http_client=http_client,
-            max_retries=max_retries if is_given(max_retries) else self.max_retries,
-            default_headers=headers,
-            default_query=params,
-            **_extra_kwargs,
-        )
-
-    # Alias for `copy` for nicer inline usage, e.g.
-    # client.with_options(timeout=10).foo.create(...)
-    with_options = copy
-
-    @override
-    def _make_status_error(
-        self,
-        err_msg: str,
-        *,
-        body: object,
-        response: httpx.Response,
-    ) -> APIStatusError:
-        if response.status_code == 400:
-            return _exceptions.BadRequestError(err_msg, response=response, body=body)
-
-        if response.status_code == 401:
-            return _exceptions.AuthenticationError(err_msg, response=response, body=body)
-
-        if response.status_code == 403:
-            return _exceptions.PermissionDeniedError(err_msg, response=response, body=body)
-
-        if response.status_code == 404:
-            return _exceptions.NotFoundError(err_msg, response=response, body=body)
-
-        if response.status_code == 409:
-            return _exceptions.ConflictError(err_msg, response=response, body=body)
-
-        if response.status_code == 422:
-            return _exceptions.UnprocessableEntityError(err_msg, response=response, body=body)
-
-        if response.status_code == 429:
-            return _exceptions.RateLimitError(err_msg, response=response, body=body)
-
-        if response.status_code >= 500:
-            return _exceptions.InternalServerError(err_msg, response=response, body=body)
-        return APIStatusError(err_msg, response=response, body=body)
+    def __exit__(self, *_: object) -> None:
+        self.close()
 
 
-class AsyncAIInbx(AsyncAPIClient):
-    # client options
-    api_key: str
+class AsyncAIInbx(AsyncResources):
+    """Asynchronous AI Inbx API client."""
 
     def __init__(
         self,
         *,
         api_key: str | None = None,
-        base_url: str | httpx.URL | None = None,
-        timeout: float | Timeout | None | NotGiven = not_given,
+        base_url: str = DEFAULT_BASE_URL,
+        timeout: float | httpx.Timeout = DEFAULT_TIMEOUT,
         max_retries: int = DEFAULT_MAX_RETRIES,
-        default_headers: Mapping[str, str] | None = None,
-        default_query: Mapping[str, object] | None = None,
-        # Configure a custom httpx client.
-        # We provide a `DefaultAsyncHttpxClient` class that you can pass to retain the default values we use for `limits`, `timeout` & `follow_redirects`.
-        # See the [httpx documentation](https://www.python-httpx.org/api/#asyncclient) for more details.
         http_client: httpx.AsyncClient | None = None,
-        # Enable or disable schema validation for data returned by the API.
-        # When enabled an error APIResponseValidationError is raised
-        # if the API responds with invalid data for the expected schema.
-        #
-        # This parameter may be removed or changed in the future.
-        # If you rely on this feature, please open a GitHub issue
-        # outlining your use-case to help us decide if it should be
-        # part of our public interface in the future.
-        _strict_response_validation: bool = False,
+        default_headers: Mapping[str, str] | None = None,
+        **shared: Unpack[SharedHeaders],
     ) -> None:
-        """Construct a new async AsyncAIInbx client instance.
-
-        This automatically infers the `api_key` argument from the `AI_INBX_API_KEY` environment variable if it is not provided.
-        """
-        if api_key is None:
-            api_key = os.environ.get("AI_INBX_API_KEY")
-        if api_key is None:
-            raise AIInbxError(
-                "The api_key client option must be set either by passing api_key to the client or by setting the AI_INBX_API_KEY environment variable"
-            )
+        api_key = api_key or os.getenv("AI_INBX_API_KEY")
+        if not api_key or not api_key.strip():
+            raise ValueError("api_key is required; pass it explicitly or set AI_INBX_API_KEY")
+        if not 0 <= max_retries <= 5:
+            raise ValueError("max_retries must be between 0 and 5")
         self.api_key = api_key
-
-        if base_url is None:
-            base_url = os.environ.get("AI_INBX_BASE_URL")
-        if base_url is None:
-            base_url = f"https://aiinbx.com/api/v1"
-
-        custom_headers_env = os.environ.get("AI_INBX_CUSTOM_HEADERS")
-        if custom_headers_env is not None:
-            parsed: dict[str, str] = {}
-            for line in custom_headers_env.split("\n"):
-                colon = line.find(":")
-                if colon >= 0:
-                    parsed[line[:colon].strip()] = line[colon + 1 :].strip()
-            default_headers = {**parsed, **(default_headers if is_mapping_t(default_headers) else {})}
-
-        super().__init__(
-            version=__version__,
-            base_url=base_url,
-            max_retries=max_retries,
-            timeout=timeout,
-            http_client=http_client,
-            custom_headers=default_headers,
-            custom_query=default_query,
-            _strict_response_validation=_strict_response_validation,
-        )
-
-    @cached_property
-    def threads(self) -> AsyncThreadsResource:
-        from .resources.threads import AsyncThreadsResource
-
-        return AsyncThreadsResource(self)
-
-    @cached_property
-    def emails(self) -> AsyncEmailsResource:
-        from .resources.emails import AsyncEmailsResource
-
-        return AsyncEmailsResource(self)
-
-    @cached_property
-    def domains(self) -> AsyncDomainsResource:
-        from .resources.domains import AsyncDomainsResource
-
-        return AsyncDomainsResource(self)
-
-    @cached_property
-    def webhooks(self) -> AsyncWebhooksResource:
-        from .resources.webhooks import AsyncWebhooksResource
-
-        return AsyncWebhooksResource(self)
-
-    @cached_property
-    def meta(self) -> AsyncMetaResource:
-        from .resources.meta import AsyncMetaResource
-
-        return AsyncMetaResource(self)
-
-    @cached_property
-    def with_raw_response(self) -> AsyncAIInbxWithRawResponse:
-        return AsyncAIInbxWithRawResponse(self)
-
-    @cached_property
-    def with_streaming_response(self) -> AsyncAIInbxWithStreamedResponse:
-        return AsyncAIInbxWithStreamedResponse(self)
-
-    @property
-    @override
-    def qs(self) -> Querystring:
-        return Querystring(array_format="comma")
-
-    @property
-    @override
-    def auth_headers(self) -> dict[str, str]:
-        api_key = self.api_key
-        return {"Authorization": f"Bearer {api_key}"}
-
-    @property
-    @override
-    def default_headers(self) -> dict[str, str | Omit]:
-        return {
-            **super().default_headers,
-            "X-Stainless-Async": f"async:{get_async_library()}",
-            **self._custom_headers,
+        self.base_url = base_url.rstrip("/")
+        self.timeout = timeout
+        self.max_retries = max_retries
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Accept": "application/json",
+            "User-Agent": f"aiinbx-python/{__version__}",
+            **(default_headers or {}),
+            **shared_headers(shared),
         }
+        self._owns_client = http_client is None
+        self._http = http_client or httpx.AsyncClient(headers=headers)
+        if http_client is not None:
+            self._http.headers.update(headers)
+        self.last_request_id: str | None = None
+        AsyncResources.__init__(self, self)
+        self.webhooks = Webhooks()
 
-    def copy(
+    @property
+    def with_raw_response(self) -> AsyncRawResources:
+        """The same resources, each call answering with a :class:`RawResponse`."""
+        return AsyncRawResources(self)
+
+    async def request(
         self,
+        method: str,
+        path: str,
         *,
-        api_key: str | None = None,
-        base_url: str | httpx.URL | None = None,
-        timeout: float | Timeout | None | NotGiven = not_given,
-        http_client: httpx.AsyncClient | None = None,
-        max_retries: int | NotGiven = not_given,
-        default_headers: Mapping[str, str] | None = None,
-        set_default_headers: Mapping[str, str] | None = None,
-        default_query: Mapping[str, object] | None = None,
-        set_default_query: Mapping[str, object] | None = None,
-        _extra_kwargs: Mapping[str, Any] = {},
-    ) -> Self:
-        """
-        Create a new client instance re-using the same options given to the current client with optional overriding.
-        """
-        if default_headers is not None and set_default_headers is not None:
-            raise ValueError("The `default_headers` and `set_default_headers` arguments are mutually exclusive")
+        params: Mapping[str, Any] | None = None,
+        json: Mapping[str, Any] | None = None,
+        headers: Mapping[str, str] | None = None,
+        timeout: float | httpx.Timeout | None = None,
+        raw: bool = False,
+        binary: bool = False,
+    ) -> Any:
+        import asyncio
 
-        if default_query is not None and set_default_query is not None:
-            raise ValueError("The `default_query` and `set_default_query` arguments are mutually exclusive")
+        replayable = _replayable(method, headers)
+        response: httpx.Response | None = None
+        for attempt in range(self.max_retries + 1):
+            try:
+                response = await self._http.request(
+                    method,
+                    f"{self.base_url}{path}",
+                    params={k: v for k, v in (params or {}).items() if v is not None},
+                    json=json,
+                    headers=headers,
+                    timeout=self.timeout if timeout is None else timeout,
+                    follow_redirects=True,
+                )
+            except httpx.TimeoutException as exc:
+                if not replayable or attempt >= self.max_retries:
+                    raise APITimeoutError("Request timed out") from exc
+                await asyncio.sleep(_retry_delay(None, attempt))
+                continue
+            except httpx.RequestError as exc:
+                if not replayable or attempt >= self.max_retries:
+                    raise APIConnectionError("Could not connect to the AI Inbx API") from exc
+                await asyncio.sleep(_retry_delay(None, attempt))
+                continue
+            if _should_retry(response.status_code, replayable) and attempt < self.max_retries:
+                await asyncio.sleep(_retry_delay(response, attempt))
+                continue
+            break
+        assert response is not None
+        self.last_request_id = _response_request_id(response)
+        if not response.is_success:
+            raise _error_from_response(response)
+        if raw:
+            return _raw(response)
+        if binary:
+            return response.content
+        if response.status_code == 204 or not response.content:
+            return None
+        return response.json()
 
-        headers = self._custom_headers
-        if default_headers is not None:
-            headers = {**headers, **default_headers}
-        elif set_default_headers is not None:
-            headers = set_default_headers
+    async def close(self) -> None:
+        if self._owns_client:
+            await self._http.aclose()
 
-        params = self._custom_query
-        if default_query is not None:
-            params = {**params, **default_query}
-        elif set_default_query is not None:
-            params = set_default_query
+    async def __aenter__(self) -> AsyncAIInbx:
+        return self
 
-        http_client = http_client or self._client
-        return self.__class__(
-            api_key=api_key or self.api_key,
-            base_url=base_url or self.base_url,
-            timeout=self.timeout if isinstance(timeout, NotGiven) else timeout,
-            http_client=http_client,
-            max_retries=max_retries if is_given(max_retries) else self.max_retries,
-            default_headers=headers,
-            default_query=params,
-            **_extra_kwargs,
-        )
-
-    # Alias for `copy` for nicer inline usage, e.g.
-    # client.with_options(timeout=10).foo.create(...)
-    with_options = copy
-
-    @override
-    def _make_status_error(
-        self,
-        err_msg: str,
-        *,
-        body: object,
-        response: httpx.Response,
-    ) -> APIStatusError:
-        if response.status_code == 400:
-            return _exceptions.BadRequestError(err_msg, response=response, body=body)
-
-        if response.status_code == 401:
-            return _exceptions.AuthenticationError(err_msg, response=response, body=body)
-
-        if response.status_code == 403:
-            return _exceptions.PermissionDeniedError(err_msg, response=response, body=body)
-
-        if response.status_code == 404:
-            return _exceptions.NotFoundError(err_msg, response=response, body=body)
-
-        if response.status_code == 409:
-            return _exceptions.ConflictError(err_msg, response=response, body=body)
-
-        if response.status_code == 422:
-            return _exceptions.UnprocessableEntityError(err_msg, response=response, body=body)
-
-        if response.status_code == 429:
-            return _exceptions.RateLimitError(err_msg, response=response, body=body)
-
-        if response.status_code >= 500:
-            return _exceptions.InternalServerError(err_msg, response=response, body=body)
-        return APIStatusError(err_msg, response=response, body=body)
-
-
-class AIInbxWithRawResponse:
-    _client: AIInbx
-
-    def __init__(self, client: AIInbx) -> None:
-        self._client = client
-
-    @cached_property
-    def threads(self) -> threads.ThreadsResourceWithRawResponse:
-        from .resources.threads import ThreadsResourceWithRawResponse
-
-        return ThreadsResourceWithRawResponse(self._client.threads)
-
-    @cached_property
-    def emails(self) -> emails.EmailsResourceWithRawResponse:
-        from .resources.emails import EmailsResourceWithRawResponse
-
-        return EmailsResourceWithRawResponse(self._client.emails)
-
-    @cached_property
-    def domains(self) -> domains.DomainsResourceWithRawResponse:
-        from .resources.domains import DomainsResourceWithRawResponse
-
-        return DomainsResourceWithRawResponse(self._client.domains)
-
-    @cached_property
-    def meta(self) -> meta.MetaResourceWithRawResponse:
-        from .resources.meta import MetaResourceWithRawResponse
-
-        return MetaResourceWithRawResponse(self._client.meta)
-
-
-class AsyncAIInbxWithRawResponse:
-    _client: AsyncAIInbx
-
-    def __init__(self, client: AsyncAIInbx) -> None:
-        self._client = client
-
-    @cached_property
-    def threads(self) -> threads.AsyncThreadsResourceWithRawResponse:
-        from .resources.threads import AsyncThreadsResourceWithRawResponse
-
-        return AsyncThreadsResourceWithRawResponse(self._client.threads)
-
-    @cached_property
-    def emails(self) -> emails.AsyncEmailsResourceWithRawResponse:
-        from .resources.emails import AsyncEmailsResourceWithRawResponse
-
-        return AsyncEmailsResourceWithRawResponse(self._client.emails)
-
-    @cached_property
-    def domains(self) -> domains.AsyncDomainsResourceWithRawResponse:
-        from .resources.domains import AsyncDomainsResourceWithRawResponse
-
-        return AsyncDomainsResourceWithRawResponse(self._client.domains)
-
-    @cached_property
-    def meta(self) -> meta.AsyncMetaResourceWithRawResponse:
-        from .resources.meta import AsyncMetaResourceWithRawResponse
-
-        return AsyncMetaResourceWithRawResponse(self._client.meta)
-
-
-class AIInbxWithStreamedResponse:
-    _client: AIInbx
-
-    def __init__(self, client: AIInbx) -> None:
-        self._client = client
-
-    @cached_property
-    def threads(self) -> threads.ThreadsResourceWithStreamingResponse:
-        from .resources.threads import ThreadsResourceWithStreamingResponse
-
-        return ThreadsResourceWithStreamingResponse(self._client.threads)
-
-    @cached_property
-    def emails(self) -> emails.EmailsResourceWithStreamingResponse:
-        from .resources.emails import EmailsResourceWithStreamingResponse
-
-        return EmailsResourceWithStreamingResponse(self._client.emails)
-
-    @cached_property
-    def domains(self) -> domains.DomainsResourceWithStreamingResponse:
-        from .resources.domains import DomainsResourceWithStreamingResponse
-
-        return DomainsResourceWithStreamingResponse(self._client.domains)
-
-    @cached_property
-    def meta(self) -> meta.MetaResourceWithStreamingResponse:
-        from .resources.meta import MetaResourceWithStreamingResponse
-
-        return MetaResourceWithStreamingResponse(self._client.meta)
-
-
-class AsyncAIInbxWithStreamedResponse:
-    _client: AsyncAIInbx
-
-    def __init__(self, client: AsyncAIInbx) -> None:
-        self._client = client
-
-    @cached_property
-    def threads(self) -> threads.AsyncThreadsResourceWithStreamingResponse:
-        from .resources.threads import AsyncThreadsResourceWithStreamingResponse
-
-        return AsyncThreadsResourceWithStreamingResponse(self._client.threads)
-
-    @cached_property
-    def emails(self) -> emails.AsyncEmailsResourceWithStreamingResponse:
-        from .resources.emails import AsyncEmailsResourceWithStreamingResponse
-
-        return AsyncEmailsResourceWithStreamingResponse(self._client.emails)
-
-    @cached_property
-    def domains(self) -> domains.AsyncDomainsResourceWithStreamingResponse:
-        from .resources.domains import AsyncDomainsResourceWithStreamingResponse
-
-        return AsyncDomainsResourceWithStreamingResponse(self._client.domains)
-
-    @cached_property
-    def meta(self) -> meta.AsyncMetaResourceWithStreamingResponse:
-        from .resources.meta import AsyncMetaResourceWithStreamingResponse
-
-        return AsyncMetaResourceWithStreamingResponse(self._client.meta)
-
-
-Client = AIInbx
-
-AsyncClient = AsyncAIInbx
+    async def __aexit__(self, *_: object) -> None:
+        await self.close()

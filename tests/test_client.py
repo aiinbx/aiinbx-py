@@ -1,1958 +1,589 @@
-# File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
-
 from __future__ import annotations
 
-import gc
-import os
-import sys
 import json
-import asyncio
-import inspect
-import dataclasses
-import tracemalloc
-from typing import Any, Union, TypeVar, Callable, Iterable, Iterator, Optional, Coroutine, cast
-from unittest import mock
-from typing_extensions import Literal, AsyncIterator, override
 
 import httpx
 import pytest
-from respx import MockRouter
-from pydantic import ValidationError
 
-from aiinbx import AIInbx, AsyncAIInbx, APIResponseValidationError
-from aiinbx._types import Omit
-from aiinbx._utils import asyncify
-from aiinbx._models import BaseModel, FinalRequestOptions
-from aiinbx._exceptions import AIInbxError, APIStatusError, APITimeoutError, APIResponseValidationError
-from aiinbx._base_client import (
-    DEFAULT_TIMEOUT,
-    HTTPX_DEFAULT_TIMEOUT,
-    BaseClient,
-    OtherPlatform,
-    DefaultHttpxClient,
-    DefaultAsyncHttpxClient,
-    get_platform,
-    make_request_options,
+from aiinbx import (
+    AIInbx,
+    APIStatusError,
+    AsyncAIInbx,
+    ConflictError,
+    NotFoundError,
+    RawResponse,
 )
 
-from .utils import update_env
 
-T = TypeVar("T")
-base_url = os.environ.get("TEST_API_BASE_URL", "http://127.0.0.1:4010")
-api_key = "My API Key"
-
-
-def _get_params(client: BaseClient[Any, Any]) -> dict[str, str]:
-    request = client._build_request(FinalRequestOptions(method="get", url="/foo"))
-    url = httpx.URL(request.url)
-    return dict(url.params)
-
-
-def _low_retry_timeout(*_args: Any, **_kwargs: Any) -> float:
-    return 0.1
-
-
-def mirror_request_content(request: httpx.Request) -> httpx.Response:
-    return httpx.Response(200, content=request.content)
-
-
-# note: we can't use the httpx.MockTransport class as it consumes the request
-#       body itself, which means we can't test that the body is read lazily
-class MockTransport(httpx.BaseTransport, httpx.AsyncBaseTransport):
-    def __init__(
-        self,
-        handler: Callable[[httpx.Request], httpx.Response]
-        | Callable[[httpx.Request], Coroutine[Any, Any, httpx.Response]],
-    ) -> None:
-        self.handler = handler
-
-    @override
-    def handle_request(
-        self,
-        request: httpx.Request,
-    ) -> httpx.Response:
-        assert not inspect.iscoroutinefunction(self.handler), "handler must not be a coroutine function"
-        assert inspect.isfunction(self.handler), "handler must be a function"
-        return self.handler(request)
-
-    @override
-    async def handle_async_request(
-        self,
-        request: httpx.Request,
-    ) -> httpx.Response:
-        assert inspect.iscoroutinefunction(self.handler), "handler must be a coroutine function"
-        return await self.handler(request)
-
-
-@dataclasses.dataclass
-class Counter:
-    value: int = 0
-
-
-def _make_sync_iterator(iterable: Iterable[T], counter: Optional[Counter] = None) -> Iterator[T]:
-    for item in iterable:
-        if counter:
-            counter.value += 1
-        yield item
-
-
-async def _make_async_iterator(iterable: Iterable[T], counter: Optional[Counter] = None) -> AsyncIterator[T]:
-    for item in iterable:
-        if counter:
-            counter.value += 1
-        yield item
-
-
-def _get_open_connections(client: AIInbx | AsyncAIInbx) -> int:
-    transport = client._client._transport
-    assert isinstance(transport, httpx.HTTPTransport) or isinstance(transport, httpx.AsyncHTTPTransport)
-
-    pool = transport._pool
-    return len(pool._requests)
-
-
-class TestAIInbx:
-    @pytest.mark.respx(base_url=base_url)
-    def test_raw_response(self, respx_mock: MockRouter, client: AIInbx) -> None:
-        respx_mock.post("/foo").mock(return_value=httpx.Response(200, json={"foo": "bar"}))
-
-        response = client.post("/foo", cast_to=httpx.Response)
-        assert response.status_code == 200
-        assert isinstance(response, httpx.Response)
-        assert response.json() == {"foo": "bar"}
-
-    @pytest.mark.respx(base_url=base_url)
-    def test_raw_response_for_binary(self, respx_mock: MockRouter, client: AIInbx) -> None:
-        respx_mock.post("/foo").mock(
-            return_value=httpx.Response(200, headers={"Content-Type": "application/binary"}, content='{"foo": "bar"}')
-        )
-
-        response = client.post("/foo", cast_to=httpx.Response)
-        assert response.status_code == 200
-        assert isinstance(response, httpx.Response)
-        assert response.json() == {"foo": "bar"}
-
-    def test_copy(self, client: AIInbx) -> None:
-        copied = client.copy()
-        assert id(copied) != id(client)
-
-        copied = client.copy(api_key="another My API Key")
-        assert copied.api_key == "another My API Key"
-        assert client.api_key == "My API Key"
-
-    def test_copy_default_options(self, client: AIInbx) -> None:
-        # options that have a default are overridden correctly
-        copied = client.copy(max_retries=7)
-        assert copied.max_retries == 7
-        assert client.max_retries == 2
-
-        copied2 = copied.copy(max_retries=6)
-        assert copied2.max_retries == 6
-        assert copied.max_retries == 7
-
-        # timeout
-        assert isinstance(client.timeout, httpx.Timeout)
-        copied = client.copy(timeout=None)
-        assert copied.timeout is None
-        assert isinstance(client.timeout, httpx.Timeout)
-
-    def test_copy_default_headers(self) -> None:
-        client = AIInbx(
-            base_url=base_url, api_key=api_key, _strict_response_validation=True, default_headers={"X-Foo": "bar"}
-        )
-        assert client.default_headers["X-Foo"] == "bar"
-
-        # does not override the already given value when not specified
-        copied = client.copy()
-        assert copied.default_headers["X-Foo"] == "bar"
-
-        # merges already given headers
-        copied = client.copy(default_headers={"X-Bar": "stainless"})
-        assert copied.default_headers["X-Foo"] == "bar"
-        assert copied.default_headers["X-Bar"] == "stainless"
-
-        # uses new values for any already given headers
-        copied = client.copy(default_headers={"X-Foo": "stainless"})
-        assert copied.default_headers["X-Foo"] == "stainless"
-
-        # set_default_headers
-
-        # completely overrides already set values
-        copied = client.copy(set_default_headers={})
-        assert copied.default_headers.get("X-Foo") is None
-
-        copied = client.copy(set_default_headers={"X-Bar": "Robert"})
-        assert copied.default_headers["X-Bar"] == "Robert"
-
-        with pytest.raises(
-            ValueError,
-            match="`default_headers` and `set_default_headers` arguments are mutually exclusive",
-        ):
-            client.copy(set_default_headers={}, default_headers={"X-Foo": "Bar"})
-        client.close()
-
-    def test_copy_default_query(self) -> None:
-        client = AIInbx(
-            base_url=base_url, api_key=api_key, _strict_response_validation=True, default_query={"foo": "bar"}
-        )
-        assert _get_params(client)["foo"] == "bar"
-
-        # does not override the already given value when not specified
-        copied = client.copy()
-        assert _get_params(copied)["foo"] == "bar"
-
-        # merges already given params
-        copied = client.copy(default_query={"bar": "stainless"})
-        params = _get_params(copied)
-        assert params["foo"] == "bar"
-        assert params["bar"] == "stainless"
-
-        # uses new values for any already given headers
-        copied = client.copy(default_query={"foo": "stainless"})
-        assert _get_params(copied)["foo"] == "stainless"
-
-        # set_default_query
-
-        # completely overrides already set values
-        copied = client.copy(set_default_query={})
-        assert _get_params(copied) == {}
-
-        copied = client.copy(set_default_query={"bar": "Robert"})
-        assert _get_params(copied)["bar"] == "Robert"
-
-        with pytest.raises(
-            ValueError,
-            # TODO: update
-            match="`default_query` and `set_default_query` arguments are mutually exclusive",
-        ):
-            client.copy(set_default_query={}, default_query={"foo": "Bar"})
-
-        client.close()
-
-    def test_copy_signature(self, client: AIInbx) -> None:
-        # ensure the same parameters that can be passed to the client are defined in the `.copy()` method
-        init_signature = inspect.signature(
-            # mypy doesn't like that we access the `__init__` property.
-            client.__init__,  # type: ignore[misc]
-        )
-        copy_signature = inspect.signature(client.copy)
-        exclude_params = {"transport", "proxies", "_strict_response_validation"}
-
-        for name in init_signature.parameters.keys():
-            if name in exclude_params:
-                continue
-
-            copy_param = copy_signature.parameters.get(name)
-            assert copy_param is not None, f"copy() signature is missing the {name} param"
-
-    @pytest.mark.skipif(sys.version_info >= (3, 10), reason="fails because of a memory leak that started from 3.12")
-    def test_copy_build_request(self, client: AIInbx) -> None:
-        options = FinalRequestOptions(method="get", url="/foo")
-
-        def build_request(options: FinalRequestOptions) -> None:
-            client_copy = client.copy()
-            client_copy._build_request(options)
-
-        # ensure that the machinery is warmed up before tracing starts.
-        build_request(options)
-        gc.collect()
-
-        tracemalloc.start(1000)
-
-        snapshot_before = tracemalloc.take_snapshot()
-
-        ITERATIONS = 10
-        for _ in range(ITERATIONS):
-            build_request(options)
-
-        gc.collect()
-        snapshot_after = tracemalloc.take_snapshot()
-
-        tracemalloc.stop()
-
-        def add_leak(leaks: list[tracemalloc.StatisticDiff], diff: tracemalloc.StatisticDiff) -> None:
-            if diff.count == 0:
-                # Avoid false positives by considering only leaks (i.e. allocations that persist).
-                return
-
-            if diff.count % ITERATIONS != 0:
-                # Avoid false positives by considering only leaks that appear per iteration.
-                return
-
-            for frame in diff.traceback:
-                if any(
-                    frame.filename.endswith(fragment)
-                    for fragment in [
-                        # to_raw_response_wrapper leaks through the @functools.wraps() decorator.
-                        #
-                        # removing the decorator fixes the leak for reasons we don't understand.
-                        "aiinbx/_legacy_response.py",
-                        "aiinbx/_response.py",
-                        # pydantic.BaseModel.model_dump || pydantic.BaseModel.dict leak memory for some reason.
-                        "aiinbx/_compat.py",
-                        # Standard library leaks we don't care about.
-                        "/logging/__init__.py",
-                    ]
-                ):
-                    return
-
-            leaks.append(diff)
-
-        leaks: list[tracemalloc.StatisticDiff] = []
-        for diff in snapshot_after.compare_to(snapshot_before, "traceback"):
-            add_leak(leaks, diff)
-        if leaks:
-            for leak in leaks:
-                print("MEMORY LEAK:", leak)
-                for frame in leak.traceback:
-                    print(frame)
-            raise AssertionError()
-
-    def test_request_timeout(self, client: AIInbx) -> None:
-        request = client._build_request(FinalRequestOptions(method="get", url="/foo"))
-        timeout = httpx.Timeout(**request.extensions["timeout"])  # type: ignore
-        assert timeout == DEFAULT_TIMEOUT
-
-        request = client._build_request(FinalRequestOptions(method="get", url="/foo", timeout=httpx.Timeout(100.0)))
-        timeout = httpx.Timeout(**request.extensions["timeout"])  # type: ignore
-        assert timeout == httpx.Timeout(100.0)
-
-    def test_client_timeout_option(self) -> None:
-        client = AIInbx(base_url=base_url, api_key=api_key, _strict_response_validation=True, timeout=httpx.Timeout(0))
-
-        request = client._build_request(FinalRequestOptions(method="get", url="/foo"))
-        timeout = httpx.Timeout(**request.extensions["timeout"])  # type: ignore
-        assert timeout == httpx.Timeout(0)
-
-        client.close()
-
-    def test_http_client_timeout_option(self) -> None:
-        # custom timeout given to the httpx client should be used
-        with httpx.Client(timeout=None) as http_client:
-            client = AIInbx(
-                base_url=base_url, api_key=api_key, _strict_response_validation=True, http_client=http_client
+def test_reads_the_conventional_api_key_environment_variable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("AI_INBX_API_KEY", "environment-key")
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.headers["authorization"] == "Bearer environment-key"
+        return httpx.Response(200, json={"data": [], "next_cursor": None})
+
+    client = AIInbx(http_client=httpx.Client(transport=httpx.MockTransport(handler)))
+    assert client.emails.list()["data"] == []
+
+
+def test_send_auth_idempotency_and_input_alias() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url == "https://api.aiinbx.com/api/v2/emails"
+        assert request.headers["authorization"] == "Bearer secret"
+        assert request.headers["idempotency-key"] == "send-1"
+        assert json.loads(request.content) == {
+            "from": "sender@example.com",
+            "to": ["recipient@example.com"],
+            "subject": "Hi",
+            "text": "Hello",
+            "thread_id": "thr_00000000000000000000000000000000",
+            "unsubscribe": True,
+        }
+        return httpx.Response(201, json={"id": "email_1", "status": "queued", "created_at": "now"})
+
+    http = httpx.Client(transport=httpx.MockTransport(handler))
+    client = AIInbx(api_key="secret", http_client=http)
+    result = client.emails.send(
+        {
+            "from_": "sender@example.com",
+            "to": ["recipient@example.com"],
+            "subject": "Hi",
+            "text": "Hello",
+            "thread_id": "thr_00000000000000000000000000000000",
+            "unsubscribe": True,
+        },
+        idempotency_key="send-1",
+    )
+    assert result["id"] == "email_1"
+
+
+def test_thread_reply_sends_body_and_undoes_the_from_alias() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/api/v2/threads/thr_1/reply"
+        assert request.headers["idempotency-key"] == "reply-1"
+        assert json.loads(request.content) == {
+            "text": "Thanks!",
+            "reply_all": True,
+            "from": "ada@example.com",
+        }
+        return httpx.Response(201, json={"id": "eml_reply", "status": "queued"})
+
+    client = AIInbx(
+        api_key="secret", http_client=httpx.Client(transport=httpx.MockTransport(handler))
+    )
+    reply = client.threads.reply(
+        "thr_1",
+        {"text": "Thanks!", "reply_all": True, "from_": "ada@example.com"},
+        idempotency_key="reply-1",
+    )
+    assert reply["id"] == "eml_reply"
+
+
+def test_thread_forward_sends_recipient_and_note() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/api/v2/threads/thr_1/forward"
+        assert request.headers["idempotency-key"] == "forward-1"
+        assert json.loads(request.content) == {
+            "to": "human@example.com",
+            "note": "Over to you.",
+            "include_attachments": False,
+        }
+        return httpx.Response(201, json={"id": "eml_fwd", "status": "queued"})
+
+    client = AIInbx(
+        api_key="secret", http_client=httpx.Client(transport=httpx.MockTransport(handler))
+    )
+    forward = client.threads.forward(
+        "thr_1",
+        {"to": "human@example.com", "note": "Over to you.", "include_attachments": False},
+        idempotency_key="forward-1",
+    )
+    assert forward["id"] == "eml_fwd"
+
+
+
+def test_thread_reply_preserves_raw_response_mode() -> None:
+    client = AIInbx(
+        api_key="secret",
+        http_client=httpx.Client(
+            transport=httpx.MockTransport(
+                lambda _: httpx.Response(201, json={"id": "eml_reply", "status": "queued"})
             )
+        ),
+    )
+    response = client.with_raw_response.threads.reply("thr_1", {"html": "<p>Thanks</p>"})
+    assert isinstance(response, RawResponse)
+    assert response.json()["id"] == "eml_reply"
 
-            request = client._build_request(FinalRequestOptions(method="get", url="/foo"))
-            timeout = httpx.Timeout(**request.extensions["timeout"])  # type: ignore
-            assert timeout == httpx.Timeout(None)
 
-            client.close()
 
-        # no timeout given to the httpx client should not use the httpx default
-        with httpx.Client() as http_client:
-            client = AIInbx(
-                base_url=base_url, api_key=api_key, _strict_response_validation=True, http_client=http_client
+def test_sync_auto_pagination_follows_cursors() -> None:
+    cursors: list[str | None] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        cursor = request.url.params.get("cursor")
+        cursors.append(cursor)
+        if cursor is None:
+            return httpx.Response(200, json={"data": [{"id": "eml_1"}], "next_cursor": "two"})
+        return httpx.Response(200, json={"data": [{"id": "eml_2"}], "next_cursor": None})
+
+    client = AIInbx(
+        api_key="secret", http_client=httpx.Client(transport=httpx.MockTransport(handler))
+    )
+    assert [email["id"] for email in client.emails.iter(limit=1)] == ["eml_1", "eml_2"]
+    assert cursors == [None, "two"]
+
+
+def test_domain_management_matches_v2_contract() -> None:
+    seen: list[tuple[str, str, dict[str, object], dict[str, str]]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        body = json.loads(request.content) if request.content else {}
+        seen.append((request.method, request.url.path, body, dict(request.url.params)))
+        if request.url.path.endswith("/diagnostics"):
+            return httpx.Response(200, json={"data": []})
+        return httpx.Response(
+            200, json={"id": "dom_1", "tracking": {"opens": True, "clicks": False}}
+        )
+
+    client = AIInbx(
+        api_key="secret", http_client=httpx.Client(transport=httpx.MockTransport(handler))
+    )
+    client.domains.update("dom_1", {"track_opens": True})
+    client.domains.diagnostics("dom_1")
+    assert seen[0][2] == {"track_opens": True}
+    assert seen[1][1] == "/api/v2/domains/dom_1/diagnostics"
+
+
+def test_api_keys_mailbox_sync_and_thread_message_pagination() -> None:
+    message_cursors: list[str | None] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/api/v2/api-keys" and request.method == "POST":
+            assert json.loads(request.content) == {"name": "Deploy", "scope": "sending"}
+            return httpx.Response(
+                201,
+                json={
+                    "id": "key_1",
+                    "name": "Deploy",
+                    "scope": "sending",
+                    "prefix": "ai_live_",
+                    "key": "ai_live_secret",
+                },
             )
-
-            request = client._build_request(FinalRequestOptions(method="get", url="/foo"))
-            timeout = httpx.Timeout(**request.extensions["timeout"])  # type: ignore
-            assert timeout == DEFAULT_TIMEOUT
-
-            client.close()
-
-        # explicitly passing the default timeout currently results in it being ignored
-        with httpx.Client(timeout=HTTPX_DEFAULT_TIMEOUT) as http_client:
-            client = AIInbx(
-                base_url=base_url, api_key=api_key, _strict_response_validation=True, http_client=http_client
-            )
-
-            request = client._build_request(FinalRequestOptions(method="get", url="/foo"))
-            timeout = httpx.Timeout(**request.extensions["timeout"])  # type: ignore
-            assert timeout == DEFAULT_TIMEOUT  # our default
-
-            client.close()
-
-    async def test_invalid_http_client(self) -> None:
-        with pytest.raises(TypeError, match="Invalid `http_client` arg"):
-            async with httpx.AsyncClient() as http_client:
-                AIInbx(
-                    base_url=base_url,
-                    api_key=api_key,
-                    _strict_response_validation=True,
-                    http_client=cast(Any, http_client),
+        if request.url.path == "/api/v2/api-keys/key_1":
+            return httpx.Response(204)
+        if request.url.path == "/api/v2/mailboxes/mbx_1/sync":
+            return httpx.Response(202, json={"status": "queued"})
+        if request.url.path == "/api/v2/threads/thr_1":
+            cursor = request.url.params.get("message_cursor")
+            message_cursors.append(cursor)
+            if cursor is None:
+                return httpx.Response(
+                    200,
+                    json={
+                        "id": "thr_1",
+                        "messages": [{"id": "eml_1"}],
+                        "messages_next_cursor": "two",
+                    },
                 )
+            return httpx.Response(
+                200,
+                json={
+                    "id": "thr_1",
+                    "messages": [{"id": "eml_2"}],
+                    "messages_next_cursor": None,
+                },
+            )
+        raise AssertionError(f"unexpected request: {request.method} {request.url}")
 
-    def test_default_headers_option(self) -> None:
-        test_client = AIInbx(
-            base_url=base_url, api_key=api_key, _strict_response_validation=True, default_headers={"X-Foo": "bar"}
+    client = AIInbx(
+        api_key="secret", http_client=httpx.Client(transport=httpx.MockTransport(handler))
+    )
+    created = client.api_keys.create({"name": "Deploy", "scope": "sending"})
+    assert created["key"] == "ai_live_secret"
+    client.api_keys.delete("key_1")
+    assert client.mailboxes.sync("mbx_1")["status"] == "queued"
+    assert [message["id"] for message in client.threads.iter_messages("thr_1")] == [
+        "eml_1",
+        "eml_2",
+    ]
+    assert message_cursors == [None, "two"]
+
+
+def test_spaces_crud_filter_and_space_id_on_create() -> None:
+    seen: list[tuple[str, str, dict[str, object], dict[str, str]]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        body = json.loads(request.content) if request.content else {}
+        seen.append((request.method, request.url.path, body, dict(request.url.params)))
+        if request.method == "DELETE":
+            return httpx.Response(204)
+        if request.method == "GET" and request.url.path in {"/api/v2/spaces", "/api/v2/domains"}:
+            return httpx.Response(200, json={"data": [{"id": "spc_1"}], "next_cursor": None})
+        return httpx.Response(
+            201, json={"id": "spc_1", "name": "Acme", "created_at": "now", "space_id": "spc_1"}
         )
-        request = test_client._build_request(FinalRequestOptions(method="get", url="/foo"))
-        assert request.headers.get("x-foo") == "bar"
-        assert request.headers.get("x-stainless-lang") == "python"
 
-        test_client2 = AIInbx(
-            base_url=base_url,
-            api_key=api_key,
-            _strict_response_validation=True,
-            default_headers={
-                "X-Foo": "stainless",
-                "X-Stainless-Lang": "my-overriding-header",
+    client = AIInbx(
+        api_key="secret", http_client=httpx.Client(transport=httpx.MockTransport(handler))
+    )
+    created = client.spaces.create({"name": "Acme", "external_id": "cus_1"})
+    assert created["name"] == "Acme"
+    assert [space["id"] for space in client.spaces.iter()] == ["spc_1"]
+    client.spaces.retrieve("spc_1")
+    client.spaces.update("spc_1", {"name": "Acme Inc", "external_id": None})
+    client.spaces.delete("spc_1")
+    client.domains.list(space="spc_1")
+    client.domains.create({"name": "acme.example.com", "space_id": "spc_1"})
+    assert [(method, path) for method, path, _, _ in seen] == [
+        ("POST", "/api/v2/spaces"),
+        ("GET", "/api/v2/spaces"),
+        ("GET", "/api/v2/spaces/spc_1"),
+        ("PATCH", "/api/v2/spaces/spc_1"),
+        ("DELETE", "/api/v2/spaces/spc_1"),
+        ("GET", "/api/v2/domains"),
+        ("POST", "/api/v2/domains"),
+    ]
+    assert seen[0][2] == {"name": "Acme", "external_id": "cus_1"}
+    assert seen[3][2] == {"name": "Acme Inc", "external_id": None}
+    assert seen[5][3] == {"space": "spc_1"}
+    assert seen[6][2] == {"name": "acme.example.com", "space_id": "spc_1"}
+
+
+def test_retrieve_email_expands_attachment_content() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/api/v2/emails/eml_1"
+        assert request.url.params.get_list("include") == ["attachment_content"]
+        return httpx.Response(200, json={"id": "eml_1"})
+
+    client = AIInbx(
+        api_key="secret", http_client=httpx.Client(transport=httpx.MockTransport(handler))
+    )
+    assert client.emails.retrieve("eml_1", include=["attachment_content"])["id"] == "eml_1"
+
+
+def test_raw_resources_mirror_every_namespace() -> None:
+    client = AIInbx(
+        api_key="secret",
+        http_client=httpx.Client(
+            transport=httpx.MockTransport(
+                lambda request: httpx.Response(
+                    200, json={"spread": 20}, headers={"X-Request-ID": "req_spread"}
+                )
+            )
+        ),
+    )
+    raw = client.with_raw_response
+    for name in ("spaces", "emails", "threads", "webhook_endpoints", "pacing", "attachments"):
+        assert hasattr(raw, name)
+    response = raw.pacing_rules.retrieve_spread()
+    assert isinstance(response, RawResponse)
+    assert response.request_id == "req_spread"
+    assert response.json()["spread"] == 20
+    assert client.pacing_rules.retrieve_spread()["spread"] == 20
+
+
+def test_retries_retry_after_and_exposes_request_id() -> None:
+    attempts = 0
+
+    def handler(_: httpx.Request) -> httpx.Response:
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            return httpx.Response(429, headers={"Retry-After": "0"})
+        return httpx.Response(
+            200,
+            json={"id": "email_1", "status": "sent", "created_at": "now"},
+            headers={"X-Request-ID": "req_123"},
+        )
+
+    client = AIInbx(
+        api_key="secret",
+        max_retries=1,
+        http_client=httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+    result = client.emails.retrieve("email_1")
+    assert result["status"] == "sent"
+    assert attempts == 2
+    assert client.last_request_id == "req_123"
+
+
+def test_status_error_contains_problem_and_request_id() -> None:
+    transport = httpx.MockTransport(
+        lambda _: httpx.Response(
+            404,
+            json={"type": "about:blank", "title": "Not found", "detail": "No email"},
+            headers={"X-Request-ID": "req_missing"},
+        )
+    )
+    client = AIInbx(api_key="secret", max_retries=0, http_client=httpx.Client(transport=transport))
+    with pytest.raises(NotFoundError) as caught:
+        client.emails.retrieve("missing")
+    assert caught.value.status_code == 404
+    assert caught.value.request_id == "req_missing"
+    assert caught.value.body["title"] == "Not found"
+
+
+def test_problem_request_id_falls_back_to_rfc_9457_body() -> None:
+    transport = httpx.MockTransport(
+        lambda _: httpx.Response(
+            404,
+            json={
+                "type": "about:blank",
+                "title": "Not found",
+                "status": 404,
+                "detail": "No email",
+                "code": "not_found",
+                "request_id": "req_from_body",
             },
         )
-        request = test_client2._build_request(FinalRequestOptions(method="get", url="/foo"))
-        assert request.headers.get("x-foo") == "stainless"
-        assert request.headers.get("x-stainless-lang") == "my-overriding-header"
-
-        test_client.close()
-        test_client2.close()
-
-    def test_validate_headers(self) -> None:
-        client = AIInbx(base_url=base_url, api_key=api_key, _strict_response_validation=True)
-        request = client._build_request(FinalRequestOptions(method="get", url="/foo"))
-        assert request.headers.get("Authorization") == f"Bearer {api_key}"
-
-        with pytest.raises(AIInbxError):
-            with update_env(**{"AI_INBX_API_KEY": Omit()}):
-                client2 = AIInbx(base_url=base_url, api_key=None, _strict_response_validation=True)
-            _ = client2
-
-    def test_default_query_option(self) -> None:
-        client = AIInbx(
-            base_url=base_url, api_key=api_key, _strict_response_validation=True, default_query={"query_param": "bar"}
-        )
-        request = client._build_request(FinalRequestOptions(method="get", url="/foo"))
-        url = httpx.URL(request.url)
-        assert dict(url.params) == {"query_param": "bar"}
-
-        request = client._build_request(
-            FinalRequestOptions(
-                method="get",
-                url="/foo",
-                params={"foo": "baz", "query_param": "overridden"},
-            )
-        )
-        url = httpx.URL(request.url)
-        assert dict(url.params) == {"foo": "baz", "query_param": "overridden"}
-
-        client.close()
-
-    def test_hardcoded_query_params_in_url(self, client: AIInbx) -> None:
-        request = client._build_request(FinalRequestOptions(method="get", url="/foo?beta=true"))
-        url = httpx.URL(request.url)
-        assert dict(url.params) == {"beta": "true"}
-
-        request = client._build_request(
-            FinalRequestOptions(
-                method="get",
-                url="/foo?beta=true",
-                params={"limit": "10", "page": "abc"},
-            )
-        )
-        url = httpx.URL(request.url)
-        assert dict(url.params) == {"beta": "true", "limit": "10", "page": "abc"}
-
-        request = client._build_request(
-            FinalRequestOptions(
-                method="get",
-                url="/files/a%2Fb?beta=true",
-                params={"limit": "10"},
-            )
-        )
-        assert request.url.raw_path == b"/files/a%2Fb?beta=true&limit=10"
-
-    def test_request_extra_json(self, client: AIInbx) -> None:
-        request = client._build_request(
-            FinalRequestOptions(
-                method="post",
-                url="/foo",
-                json_data={"foo": "bar"},
-                extra_json={"baz": False},
-            ),
-        )
-        data = json.loads(request.content.decode("utf-8"))
-        assert data == {"foo": "bar", "baz": False}
-
-        request = client._build_request(
-            FinalRequestOptions(
-                method="post",
-                url="/foo",
-                extra_json={"baz": False},
-            ),
-        )
-        data = json.loads(request.content.decode("utf-8"))
-        assert data == {"baz": False}
-
-        # `extra_json` takes priority over `json_data` when keys clash
-        request = client._build_request(
-            FinalRequestOptions(
-                method="post",
-                url="/foo",
-                json_data={"foo": "bar", "baz": True},
-                extra_json={"baz": None},
-            ),
-        )
-        data = json.loads(request.content.decode("utf-8"))
-        assert data == {"foo": "bar", "baz": None}
-
-    def test_request_extra_headers(self, client: AIInbx) -> None:
-        request = client._build_request(
-            FinalRequestOptions(
-                method="post",
-                url="/foo",
-                **make_request_options(extra_headers={"X-Foo": "Foo"}),
-            ),
-        )
-        assert request.headers.get("X-Foo") == "Foo"
-
-        # `extra_headers` takes priority over `default_headers` when keys clash
-        request = client.with_options(default_headers={"X-Bar": "true"})._build_request(
-            FinalRequestOptions(
-                method="post",
-                url="/foo",
-                **make_request_options(
-                    extra_headers={"X-Bar": "false"},
-                ),
-            ),
-        )
-        assert request.headers.get("X-Bar") == "false"
-
-    def test_request_extra_query(self, client: AIInbx) -> None:
-        request = client._build_request(
-            FinalRequestOptions(
-                method="post",
-                url="/foo",
-                **make_request_options(
-                    extra_query={"my_query_param": "Foo"},
-                ),
-            ),
-        )
-        params = dict(request.url.params)
-        assert params == {"my_query_param": "Foo"}
-
-        # if both `query` and `extra_query` are given, they are merged
-        request = client._build_request(
-            FinalRequestOptions(
-                method="post",
-                url="/foo",
-                **make_request_options(
-                    query={"bar": "1"},
-                    extra_query={"foo": "2"},
-                ),
-            ),
-        )
-        params = dict(request.url.params)
-        assert params == {"bar": "1", "foo": "2"}
-
-        # `extra_query` takes priority over `query` when keys clash
-        request = client._build_request(
-            FinalRequestOptions(
-                method="post",
-                url="/foo",
-                **make_request_options(
-                    query={"foo": "1"},
-                    extra_query={"foo": "2"},
-                ),
-            ),
-        )
-        params = dict(request.url.params)
-        assert params == {"foo": "2"}
-
-    def test_multipart_repeating_array(self, client: AIInbx) -> None:
-        request = client._build_request(
-            FinalRequestOptions.construct(
-                method="post",
-                url="/foo",
-                headers={"Content-Type": "multipart/form-data; boundary=6b7ba517decee4a450543ea6ae821c82"},
-                json_data={"array": ["foo", "bar"]},
-                files=[("foo.txt", b"hello world")],
-            )
-        )
-
-        assert request.read().split(b"\r\n") == [
-            b"--6b7ba517decee4a450543ea6ae821c82",
-            b'Content-Disposition: form-data; name="array[]"',
-            b"",
-            b"foo",
-            b"--6b7ba517decee4a450543ea6ae821c82",
-            b'Content-Disposition: form-data; name="array[]"',
-            b"",
-            b"bar",
-            b"--6b7ba517decee4a450543ea6ae821c82",
-            b'Content-Disposition: form-data; name="foo.txt"; filename="upload"',
-            b"Content-Type: application/octet-stream",
-            b"",
-            b"hello world",
-            b"--6b7ba517decee4a450543ea6ae821c82--",
-            b"",
-        ]
-
-    @pytest.mark.respx(base_url=base_url)
-    def test_binary_content_upload(self, respx_mock: MockRouter, client: AIInbx) -> None:
-        respx_mock.post("/upload").mock(side_effect=mirror_request_content)
-
-        file_content = b"Hello, this is a test file."
-
-        response = client.post(
-            "/upload",
-            content=file_content,
-            cast_to=httpx.Response,
-            options={"headers": {"Content-Type": "application/octet-stream"}},
-        )
-
-        assert response.status_code == 200
-        assert response.request.headers["Content-Type"] == "application/octet-stream"
-        assert response.content == file_content
-
-    def test_binary_content_upload_with_iterator(self) -> None:
-        file_content = b"Hello, this is a test file."
-        counter = Counter()
-        iterator = _make_sync_iterator([file_content], counter=counter)
-
-        def mock_handler(request: httpx.Request) -> httpx.Response:
-            assert counter.value == 0, "the request body should not have been read"
-            return httpx.Response(200, content=request.read())
-
-        with AIInbx(
-            base_url=base_url,
-            api_key=api_key,
-            _strict_response_validation=True,
-            http_client=httpx.Client(transport=MockTransport(handler=mock_handler)),
-        ) as client:
-            response = client.post(
-                "/upload",
-                content=iterator,
-                cast_to=httpx.Response,
-                options={"headers": {"Content-Type": "application/octet-stream"}},
-            )
-
-            assert response.status_code == 200
-            assert response.request.headers["Content-Type"] == "application/octet-stream"
-            assert response.content == file_content
-            assert counter.value == 1
-
-    @pytest.mark.respx(base_url=base_url)
-    def test_binary_content_upload_with_body_is_deprecated(self, respx_mock: MockRouter, client: AIInbx) -> None:
-        respx_mock.post("/upload").mock(side_effect=mirror_request_content)
-
-        file_content = b"Hello, this is a test file."
-
-        with pytest.deprecated_call(
-            match="Passing raw bytes as `body` is deprecated and will be removed in a future version. Please pass raw bytes via the `content` parameter instead."
-        ):
-            response = client.post(
-                "/upload",
-                body=file_content,
-                cast_to=httpx.Response,
-                options={"headers": {"Content-Type": "application/octet-stream"}},
-            )
-
-        assert response.status_code == 200
-        assert response.request.headers["Content-Type"] == "application/octet-stream"
-        assert response.content == file_content
-
-    @pytest.mark.respx(base_url=base_url)
-    def test_basic_union_response(self, respx_mock: MockRouter, client: AIInbx) -> None:
-        class Model1(BaseModel):
-            name: str
-
-        class Model2(BaseModel):
-            foo: str
-
-        respx_mock.get("/foo").mock(return_value=httpx.Response(200, json={"foo": "bar"}))
-
-        response = client.get("/foo", cast_to=cast(Any, Union[Model1, Model2]))
-        assert isinstance(response, Model2)
-        assert response.foo == "bar"
-
-    @pytest.mark.respx(base_url=base_url)
-    def test_union_response_different_types(self, respx_mock: MockRouter, client: AIInbx) -> None:
-        """Union of objects with the same field name using a different type"""
-
-        class Model1(BaseModel):
-            foo: int
-
-        class Model2(BaseModel):
-            foo: str
-
-        respx_mock.get("/foo").mock(return_value=httpx.Response(200, json={"foo": "bar"}))
-
-        response = client.get("/foo", cast_to=cast(Any, Union[Model1, Model2]))
-        assert isinstance(response, Model2)
-        assert response.foo == "bar"
-
-        respx_mock.get("/foo").mock(return_value=httpx.Response(200, json={"foo": 1}))
-
-        response = client.get("/foo", cast_to=cast(Any, Union[Model1, Model2]))
-        assert isinstance(response, Model1)
-        assert response.foo == 1
-
-    @pytest.mark.respx(base_url=base_url)
-    def test_non_application_json_content_type_for_json_data(self, respx_mock: MockRouter, client: AIInbx) -> None:
-        """
-        Response that sets Content-Type to something other than application/json but returns json data
-        """
-
-        class Model(BaseModel):
-            foo: int
-
-        respx_mock.get("/foo").mock(
-            return_value=httpx.Response(
-                200,
-                content=json.dumps({"foo": 2}),
-                headers={"Content-Type": "application/text"},
-            )
-        )
-
-        response = client.get("/foo", cast_to=Model)
-        assert isinstance(response, Model)
-        assert response.foo == 2
-
-    def test_base_url_setter(self) -> None:
-        client = AIInbx(base_url="https://example.com/from_init", api_key=api_key, _strict_response_validation=True)
-        assert client.base_url == "https://example.com/from_init/"
-
-        client.base_url = "https://example.com/from_setter"  # type: ignore[assignment]
-
-        assert client.base_url == "https://example.com/from_setter/"
-
-        client.close()
-
-    def test_base_url_env(self) -> None:
-        with update_env(AI_INBX_BASE_URL="http://localhost:5000/from/env"):
-            client = AIInbx(api_key=api_key, _strict_response_validation=True)
-            assert client.base_url == "http://localhost:5000/from/env/"
-
-    @pytest.mark.parametrize(
-        "client",
-        [
-            AIInbx(base_url="http://localhost:5000/custom/path/", api_key=api_key, _strict_response_validation=True),
-            AIInbx(
-                base_url="http://localhost:5000/custom/path/",
-                api_key=api_key,
-                _strict_response_validation=True,
-                http_client=httpx.Client(),
-            ),
-        ],
-        ids=["standard", "custom http client"],
     )
-    def test_base_url_trailing_slash(self, client: AIInbx) -> None:
-        request = client._build_request(
-            FinalRequestOptions(
-                method="post",
-                url="/foo",
-                json_data={"foo": "bar"},
-            ),
-        )
-        assert request.url == "http://localhost:5000/custom/path/foo"
-        client.close()
-
-    @pytest.mark.parametrize(
-        "client",
-        [
-            AIInbx(base_url="http://localhost:5000/custom/path/", api_key=api_key, _strict_response_validation=True),
-            AIInbx(
-                base_url="http://localhost:5000/custom/path/",
-                api_key=api_key,
-                _strict_response_validation=True,
-                http_client=httpx.Client(),
-            ),
-        ],
-        ids=["standard", "custom http client"],
-    )
-    def test_base_url_no_trailing_slash(self, client: AIInbx) -> None:
-        request = client._build_request(
-            FinalRequestOptions(
-                method="post",
-                url="/foo",
-                json_data={"foo": "bar"},
-            ),
-        )
-        assert request.url == "http://localhost:5000/custom/path/foo"
-        client.close()
-
-    @pytest.mark.parametrize(
-        "client",
-        [
-            AIInbx(base_url="http://localhost:5000/custom/path/", api_key=api_key, _strict_response_validation=True),
-            AIInbx(
-                base_url="http://localhost:5000/custom/path/",
-                api_key=api_key,
-                _strict_response_validation=True,
-                http_client=httpx.Client(),
-            ),
-        ],
-        ids=["standard", "custom http client"],
-    )
-    def test_absolute_request_url(self, client: AIInbx) -> None:
-        request = client._build_request(
-            FinalRequestOptions(
-                method="post",
-                url="https://myapi.com/foo",
-                json_data={"foo": "bar"},
-            ),
-        )
-        assert request.url == "https://myapi.com/foo"
-        client.close()
-
-    def test_copied_client_does_not_close_http(self) -> None:
-        test_client = AIInbx(base_url=base_url, api_key=api_key, _strict_response_validation=True)
-        assert not test_client.is_closed()
-
-        copied = test_client.copy()
-        assert copied is not test_client
-
-        del copied
-
-        assert not test_client.is_closed()
-
-    def test_client_context_manager(self) -> None:
-        test_client = AIInbx(base_url=base_url, api_key=api_key, _strict_response_validation=True)
-        with test_client as c2:
-            assert c2 is test_client
-            assert not c2.is_closed()
-            assert not test_client.is_closed()
-        assert test_client.is_closed()
-
-    @pytest.mark.respx(base_url=base_url)
-    def test_client_response_validation_error(self, respx_mock: MockRouter, client: AIInbx) -> None:
-        class Model(BaseModel):
-            foo: str
-
-        respx_mock.get("/foo").mock(return_value=httpx.Response(200, json={"foo": {"invalid": True}}))
-
-        with pytest.raises(APIResponseValidationError) as exc:
-            client.get("/foo", cast_to=Model)
-
-        assert isinstance(exc.value.__cause__, ValidationError)
-
-    def test_client_max_retries_validation(self) -> None:
-        with pytest.raises(TypeError, match=r"max_retries cannot be None"):
-            AIInbx(base_url=base_url, api_key=api_key, _strict_response_validation=True, max_retries=cast(Any, None))
-
-    @pytest.mark.respx(base_url=base_url)
-    def test_received_text_for_expected_json(self, respx_mock: MockRouter) -> None:
-        class Model(BaseModel):
-            name: str
-
-        respx_mock.get("/foo").mock(return_value=httpx.Response(200, text="my-custom-format"))
-
-        strict_client = AIInbx(base_url=base_url, api_key=api_key, _strict_response_validation=True)
-
-        with pytest.raises(APIResponseValidationError):
-            strict_client.get("/foo", cast_to=Model)
-
-        non_strict_client = AIInbx(base_url=base_url, api_key=api_key, _strict_response_validation=False)
-
-        response = non_strict_client.get("/foo", cast_to=Model)
-        assert isinstance(response, str)  # type: ignore[unreachable]
-
-        strict_client.close()
-        non_strict_client.close()
-
-    @pytest.mark.parametrize(
-        "remaining_retries,retry_after,timeout",
-        [
-            [3, "20", 20],
-            [3, "0", 0.5],
-            [3, "-10", 0.5],
-            [3, "60", 60],
-            [3, "61", 0.5],
-            [3, "Fri, 29 Sep 2023 16:26:57 GMT", 20],
-            [3, "Fri, 29 Sep 2023 16:26:37 GMT", 0.5],
-            [3, "Fri, 29 Sep 2023 16:26:27 GMT", 0.5],
-            [3, "Fri, 29 Sep 2023 16:27:37 GMT", 60],
-            [3, "Fri, 29 Sep 2023 16:27:38 GMT", 0.5],
-            [3, "99999999999999999999999999999999999", 0.5],
-            [3, "Zun, 29 Sep 2023 16:26:27 GMT", 0.5],
-            [3, "", 0.5],
-            [2, "", 0.5 * 2.0],
-            [1, "", 0.5 * 4.0],
-            [-1100, "", 8],  # test large number potentially overflowing
-        ],
-    )
-    @mock.patch("time.time", mock.MagicMock(return_value=1696004797))
-    def test_parse_retry_after_header(
-        self, remaining_retries: int, retry_after: str, timeout: float, client: AIInbx
-    ) -> None:
-        headers = httpx.Headers({"retry-after": retry_after})
-        options = FinalRequestOptions(method="get", url="/foo", max_retries=3)
-        calculated = client._calculate_retry_timeout(remaining_retries, options, headers)
-        assert calculated == pytest.approx(timeout, 0.5 * 0.875)  # pyright: ignore[reportUnknownMemberType]
-
-    @mock.patch("aiinbx._base_client.BaseClient._calculate_retry_timeout", _low_retry_timeout)
-    @pytest.mark.respx(base_url=base_url)
-    def test_retrying_timeout_errors_doesnt_leak(self, respx_mock: MockRouter, client: AIInbx) -> None:
-        respx_mock.post("/threads/search").mock(side_effect=httpx.TimeoutException("Test timeout error"))
-
-        with pytest.raises(APITimeoutError):
-            client.threads.with_streaming_response.search().__enter__()
-
-        assert _get_open_connections(client) == 0
-
-    @mock.patch("aiinbx._base_client.BaseClient._calculate_retry_timeout", _low_retry_timeout)
-    @pytest.mark.respx(base_url=base_url)
-    def test_retrying_status_errors_doesnt_leak(self, respx_mock: MockRouter, client: AIInbx) -> None:
-        respx_mock.post("/threads/search").mock(return_value=httpx.Response(500))
-
-        with pytest.raises(APIStatusError):
-            client.threads.with_streaming_response.search().__enter__()
-        assert _get_open_connections(client) == 0
-
-    @pytest.mark.parametrize("failures_before_success", [0, 2, 4])
-    @mock.patch("aiinbx._base_client.BaseClient._calculate_retry_timeout", _low_retry_timeout)
-    @pytest.mark.respx(base_url=base_url)
-    @pytest.mark.parametrize("failure_mode", ["status", "exception"])
-    def test_retries_taken(
-        self,
-        client: AIInbx,
-        failures_before_success: int,
-        failure_mode: Literal["status", "exception"],
-        respx_mock: MockRouter,
-    ) -> None:
-        client = client.with_options(max_retries=4)
-
-        nb_retries = 0
-
-        def retry_handler(_request: httpx.Request) -> httpx.Response:
-            nonlocal nb_retries
-            if nb_retries < failures_before_success:
-                nb_retries += 1
-                if failure_mode == "exception":
-                    raise RuntimeError("oops")
-                return httpx.Response(500)
-            return httpx.Response(200)
-
-        respx_mock.post("/threads/search").mock(side_effect=retry_handler)
-
-        response = client.threads.with_raw_response.search()
-
-        assert response.retries_taken == failures_before_success
-        assert int(response.http_request.headers.get("x-stainless-retry-count")) == failures_before_success
-
-    @pytest.mark.parametrize("failures_before_success", [0, 2, 4])
-    @mock.patch("aiinbx._base_client.BaseClient._calculate_retry_timeout", _low_retry_timeout)
-    @pytest.mark.respx(base_url=base_url)
-    def test_omit_retry_count_header(
-        self, client: AIInbx, failures_before_success: int, respx_mock: MockRouter
-    ) -> None:
-        client = client.with_options(max_retries=4)
-
-        nb_retries = 0
-
-        def retry_handler(_request: httpx.Request) -> httpx.Response:
-            nonlocal nb_retries
-            if nb_retries < failures_before_success:
-                nb_retries += 1
-                return httpx.Response(500)
-            return httpx.Response(200)
-
-        respx_mock.post("/threads/search").mock(side_effect=retry_handler)
-
-        response = client.threads.with_raw_response.search(extra_headers={"x-stainless-retry-count": Omit()})
-
-        assert len(response.http_request.headers.get_list("x-stainless-retry-count")) == 0
-
-    @pytest.mark.parametrize("failures_before_success", [0, 2, 4])
-    @mock.patch("aiinbx._base_client.BaseClient._calculate_retry_timeout", _low_retry_timeout)
-    @pytest.mark.respx(base_url=base_url)
-    def test_overwrite_retry_count_header(
-        self, client: AIInbx, failures_before_success: int, respx_mock: MockRouter
-    ) -> None:
-        client = client.with_options(max_retries=4)
-
-        nb_retries = 0
-
-        def retry_handler(_request: httpx.Request) -> httpx.Response:
-            nonlocal nb_retries
-            if nb_retries < failures_before_success:
-                nb_retries += 1
-                return httpx.Response(500)
-            return httpx.Response(200)
-
-        respx_mock.post("/threads/search").mock(side_effect=retry_handler)
-
-        response = client.threads.with_raw_response.search(extra_headers={"x-stainless-retry-count": "42"})
-
-        assert response.http_request.headers.get("x-stainless-retry-count") == "42"
-
-    def test_proxy_environment_variables(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        # Test that the proxy environment variables are set correctly
-        monkeypatch.setenv("HTTPS_PROXY", "https://example.org")
-        # Delete in case our environment has any proxy env vars set
-        monkeypatch.delenv("HTTP_PROXY", raising=False)
-        monkeypatch.delenv("ALL_PROXY", raising=False)
-        monkeypatch.delenv("NO_PROXY", raising=False)
-        monkeypatch.delenv("http_proxy", raising=False)
-        monkeypatch.delenv("https_proxy", raising=False)
-        monkeypatch.delenv("all_proxy", raising=False)
-        monkeypatch.delenv("no_proxy", raising=False)
-
-        client = DefaultHttpxClient()
-
-        mounts = tuple(client._mounts.items())
-        assert len(mounts) == 1
-        assert mounts[0][0].pattern == "https://"
-
-    @pytest.mark.filterwarnings("ignore:.*deprecated.*:DeprecationWarning")
-    def test_default_client_creation(self) -> None:
-        # Ensure that the client can be initialized without any exceptions
-        DefaultHttpxClient(
-            verify=True,
-            cert=None,
-            trust_env=True,
-            http1=True,
-            http2=False,
-            limits=httpx.Limits(max_connections=100, max_keepalive_connections=20),
-        )
-
-    @pytest.mark.respx(base_url=base_url)
-    def test_follow_redirects(self, respx_mock: MockRouter, client: AIInbx) -> None:
-        # Test that the default follow_redirects=True allows following redirects
-        respx_mock.post("/redirect").mock(
-            return_value=httpx.Response(302, headers={"Location": f"{base_url}/redirected"})
-        )
-        respx_mock.get("/redirected").mock(return_value=httpx.Response(200, json={"status": "ok"}))
-
-        response = client.post("/redirect", body={"key": "value"}, cast_to=httpx.Response)
-        assert response.status_code == 200
-        assert response.json() == {"status": "ok"}
-
-    @pytest.mark.respx(base_url=base_url)
-    def test_follow_redirects_disabled(self, respx_mock: MockRouter, client: AIInbx) -> None:
-        # Test that follow_redirects=False prevents following redirects
-        respx_mock.post("/redirect").mock(
-            return_value=httpx.Response(302, headers={"Location": f"{base_url}/redirected"})
-        )
-
-        with pytest.raises(APIStatusError) as exc_info:
-            client.post("/redirect", body={"key": "value"}, options={"follow_redirects": False}, cast_to=httpx.Response)
-
-        assert exc_info.value.response.status_code == 302
-        assert exc_info.value.response.headers["Location"] == f"{base_url}/redirected"
-
-
-class TestAsyncAIInbx:
-    @pytest.mark.respx(base_url=base_url)
-    async def test_raw_response(self, respx_mock: MockRouter, async_client: AsyncAIInbx) -> None:
-        respx_mock.post("/foo").mock(return_value=httpx.Response(200, json={"foo": "bar"}))
-
-        response = await async_client.post("/foo", cast_to=httpx.Response)
-        assert response.status_code == 200
-        assert isinstance(response, httpx.Response)
-        assert response.json() == {"foo": "bar"}
-
-    @pytest.mark.respx(base_url=base_url)
-    async def test_raw_response_for_binary(self, respx_mock: MockRouter, async_client: AsyncAIInbx) -> None:
-        respx_mock.post("/foo").mock(
-            return_value=httpx.Response(200, headers={"Content-Type": "application/binary"}, content='{"foo": "bar"}')
-        )
-
-        response = await async_client.post("/foo", cast_to=httpx.Response)
-        assert response.status_code == 200
-        assert isinstance(response, httpx.Response)
-        assert response.json() == {"foo": "bar"}
-
-    def test_copy(self, async_client: AsyncAIInbx) -> None:
-        copied = async_client.copy()
-        assert id(copied) != id(async_client)
-
-        copied = async_client.copy(api_key="another My API Key")
-        assert copied.api_key == "another My API Key"
-        assert async_client.api_key == "My API Key"
-
-    def test_copy_default_options(self, async_client: AsyncAIInbx) -> None:
-        # options that have a default are overridden correctly
-        copied = async_client.copy(max_retries=7)
-        assert copied.max_retries == 7
-        assert async_client.max_retries == 2
-
-        copied2 = copied.copy(max_retries=6)
-        assert copied2.max_retries == 6
-        assert copied.max_retries == 7
-
-        # timeout
-        assert isinstance(async_client.timeout, httpx.Timeout)
-        copied = async_client.copy(timeout=None)
-        assert copied.timeout is None
-        assert isinstance(async_client.timeout, httpx.Timeout)
-
-    async def test_copy_default_headers(self) -> None:
-        client = AsyncAIInbx(
-            base_url=base_url, api_key=api_key, _strict_response_validation=True, default_headers={"X-Foo": "bar"}
-        )
-        assert client.default_headers["X-Foo"] == "bar"
-
-        # does not override the already given value when not specified
-        copied = client.copy()
-        assert copied.default_headers["X-Foo"] == "bar"
-
-        # merges already given headers
-        copied = client.copy(default_headers={"X-Bar": "stainless"})
-        assert copied.default_headers["X-Foo"] == "bar"
-        assert copied.default_headers["X-Bar"] == "stainless"
-
-        # uses new values for any already given headers
-        copied = client.copy(default_headers={"X-Foo": "stainless"})
-        assert copied.default_headers["X-Foo"] == "stainless"
-
-        # set_default_headers
-
-        # completely overrides already set values
-        copied = client.copy(set_default_headers={})
-        assert copied.default_headers.get("X-Foo") is None
-
-        copied = client.copy(set_default_headers={"X-Bar": "Robert"})
-        assert copied.default_headers["X-Bar"] == "Robert"
-
-        with pytest.raises(
-            ValueError,
-            match="`default_headers` and `set_default_headers` arguments are mutually exclusive",
-        ):
-            client.copy(set_default_headers={}, default_headers={"X-Foo": "Bar"})
-        await client.close()
-
-    async def test_copy_default_query(self) -> None:
-        client = AsyncAIInbx(
-            base_url=base_url, api_key=api_key, _strict_response_validation=True, default_query={"foo": "bar"}
-        )
-        assert _get_params(client)["foo"] == "bar"
-
-        # does not override the already given value when not specified
-        copied = client.copy()
-        assert _get_params(copied)["foo"] == "bar"
-
-        # merges already given params
-        copied = client.copy(default_query={"bar": "stainless"})
-        params = _get_params(copied)
-        assert params["foo"] == "bar"
-        assert params["bar"] == "stainless"
-
-        # uses new values for any already given headers
-        copied = client.copy(default_query={"foo": "stainless"})
-        assert _get_params(copied)["foo"] == "stainless"
-
-        # set_default_query
-
-        # completely overrides already set values
-        copied = client.copy(set_default_query={})
-        assert _get_params(copied) == {}
-
-        copied = client.copy(set_default_query={"bar": "Robert"})
-        assert _get_params(copied)["bar"] == "Robert"
-
-        with pytest.raises(
-            ValueError,
-            # TODO: update
-            match="`default_query` and `set_default_query` arguments are mutually exclusive",
-        ):
-            client.copy(set_default_query={}, default_query={"foo": "Bar"})
-
-        await client.close()
-
-    def test_copy_signature(self, async_client: AsyncAIInbx) -> None:
-        # ensure the same parameters that can be passed to the client are defined in the `.copy()` method
-        init_signature = inspect.signature(
-            # mypy doesn't like that we access the `__init__` property.
-            async_client.__init__,  # type: ignore[misc]
-        )
-        copy_signature = inspect.signature(async_client.copy)
-        exclude_params = {"transport", "proxies", "_strict_response_validation"}
-
-        for name in init_signature.parameters.keys():
-            if name in exclude_params:
-                continue
-
-            copy_param = copy_signature.parameters.get(name)
-            assert copy_param is not None, f"copy() signature is missing the {name} param"
-
-    @pytest.mark.skipif(sys.version_info >= (3, 10), reason="fails because of a memory leak that started from 3.12")
-    def test_copy_build_request(self, async_client: AsyncAIInbx) -> None:
-        options = FinalRequestOptions(method="get", url="/foo")
-
-        def build_request(options: FinalRequestOptions) -> None:
-            client_copy = async_client.copy()
-            client_copy._build_request(options)
-
-        # ensure that the machinery is warmed up before tracing starts.
-        build_request(options)
-        gc.collect()
-
-        tracemalloc.start(1000)
-
-        snapshot_before = tracemalloc.take_snapshot()
-
-        ITERATIONS = 10
-        for _ in range(ITERATIONS):
-            build_request(options)
-
-        gc.collect()
-        snapshot_after = tracemalloc.take_snapshot()
-
-        tracemalloc.stop()
-
-        def add_leak(leaks: list[tracemalloc.StatisticDiff], diff: tracemalloc.StatisticDiff) -> None:
-            if diff.count == 0:
-                # Avoid false positives by considering only leaks (i.e. allocations that persist).
-                return
-
-            if diff.count % ITERATIONS != 0:
-                # Avoid false positives by considering only leaks that appear per iteration.
-                return
-
-            for frame in diff.traceback:
-                if any(
-                    frame.filename.endswith(fragment)
-                    for fragment in [
-                        # to_raw_response_wrapper leaks through the @functools.wraps() decorator.
-                        #
-                        # removing the decorator fixes the leak for reasons we don't understand.
-                        "aiinbx/_legacy_response.py",
-                        "aiinbx/_response.py",
-                        # pydantic.BaseModel.model_dump || pydantic.BaseModel.dict leak memory for some reason.
-                        "aiinbx/_compat.py",
-                        # Standard library leaks we don't care about.
-                        "/logging/__init__.py",
-                    ]
-                ):
-                    return
-
-            leaks.append(diff)
-
-        leaks: list[tracemalloc.StatisticDiff] = []
-        for diff in snapshot_after.compare_to(snapshot_before, "traceback"):
-            add_leak(leaks, diff)
-        if leaks:
-            for leak in leaks:
-                print("MEMORY LEAK:", leak)
-                for frame in leak.traceback:
-                    print(frame)
-            raise AssertionError()
-
-    async def test_request_timeout(self, async_client: AsyncAIInbx) -> None:
-        request = async_client._build_request(FinalRequestOptions(method="get", url="/foo"))
-        timeout = httpx.Timeout(**request.extensions["timeout"])  # type: ignore
-        assert timeout == DEFAULT_TIMEOUT
-
-        request = async_client._build_request(
-            FinalRequestOptions(method="get", url="/foo", timeout=httpx.Timeout(100.0))
-        )
-        timeout = httpx.Timeout(**request.extensions["timeout"])  # type: ignore
-        assert timeout == httpx.Timeout(100.0)
-
-    async def test_client_timeout_option(self) -> None:
-        client = AsyncAIInbx(
-            base_url=base_url, api_key=api_key, _strict_response_validation=True, timeout=httpx.Timeout(0)
-        )
-
-        request = client._build_request(FinalRequestOptions(method="get", url="/foo"))
-        timeout = httpx.Timeout(**request.extensions["timeout"])  # type: ignore
-        assert timeout == httpx.Timeout(0)
-
-        await client.close()
-
-    async def test_http_client_timeout_option(self) -> None:
-        # custom timeout given to the httpx client should be used
-        async with httpx.AsyncClient(timeout=None) as http_client:
-            client = AsyncAIInbx(
-                base_url=base_url, api_key=api_key, _strict_response_validation=True, http_client=http_client
-            )
-
-            request = client._build_request(FinalRequestOptions(method="get", url="/foo"))
-            timeout = httpx.Timeout(**request.extensions["timeout"])  # type: ignore
-            assert timeout == httpx.Timeout(None)
-
-            await client.close()
-
-        # no timeout given to the httpx client should not use the httpx default
-        async with httpx.AsyncClient() as http_client:
-            client = AsyncAIInbx(
-                base_url=base_url, api_key=api_key, _strict_response_validation=True, http_client=http_client
-            )
-
-            request = client._build_request(FinalRequestOptions(method="get", url="/foo"))
-            timeout = httpx.Timeout(**request.extensions["timeout"])  # type: ignore
-            assert timeout == DEFAULT_TIMEOUT
-
-            await client.close()
-
-        # explicitly passing the default timeout currently results in it being ignored
-        async with httpx.AsyncClient(timeout=HTTPX_DEFAULT_TIMEOUT) as http_client:
-            client = AsyncAIInbx(
-                base_url=base_url, api_key=api_key, _strict_response_validation=True, http_client=http_client
-            )
-
-            request = client._build_request(FinalRequestOptions(method="get", url="/foo"))
-            timeout = httpx.Timeout(**request.extensions["timeout"])  # type: ignore
-            assert timeout == DEFAULT_TIMEOUT  # our default
-
-            await client.close()
-
-    def test_invalid_http_client(self) -> None:
-        with pytest.raises(TypeError, match="Invalid `http_client` arg"):
-            with httpx.Client() as http_client:
-                AsyncAIInbx(
-                    base_url=base_url,
-                    api_key=api_key,
-                    _strict_response_validation=True,
-                    http_client=cast(Any, http_client),
-                )
-
-    async def test_default_headers_option(self) -> None:
-        test_client = AsyncAIInbx(
-            base_url=base_url, api_key=api_key, _strict_response_validation=True, default_headers={"X-Foo": "bar"}
-        )
-        request = test_client._build_request(FinalRequestOptions(method="get", url="/foo"))
-        assert request.headers.get("x-foo") == "bar"
-        assert request.headers.get("x-stainless-lang") == "python"
-
-        test_client2 = AsyncAIInbx(
-            base_url=base_url,
-            api_key=api_key,
-            _strict_response_validation=True,
-            default_headers={
-                "X-Foo": "stainless",
-                "X-Stainless-Lang": "my-overriding-header",
+    client = AIInbx(api_key="secret", max_retries=0, http_client=httpx.Client(transport=transport))
+    with pytest.raises(NotFoundError) as caught:
+        client.emails.retrieve("missing")
+    assert caught.value.request_id == "req_from_body"
+
+
+def test_binary_endpoint_error_carries_problem_code() -> None:
+    transport = httpx.MockTransport(
+        lambda _: httpx.Response(
+            404,
+            json={
+                "type": "about:blank",
+                "title": "Not Found",
+                "status": 404,
+                "detail": "No prepared text: preparation is failed",
+                "code": "not_prepared",
             },
         )
-        request = test_client2._build_request(FinalRequestOptions(method="get", url="/foo"))
-        assert request.headers.get("x-foo") == "stainless"
-        assert request.headers.get("x-stainless-lang") == "my-overriding-header"
-
-        await test_client.close()
-        await test_client2.close()
-
-    def test_validate_headers(self) -> None:
-        client = AsyncAIInbx(base_url=base_url, api_key=api_key, _strict_response_validation=True)
-        request = client._build_request(FinalRequestOptions(method="get", url="/foo"))
-        assert request.headers.get("Authorization") == f"Bearer {api_key}"
-
-        with pytest.raises(AIInbxError):
-            with update_env(**{"AI_INBX_API_KEY": Omit()}):
-                client2 = AsyncAIInbx(base_url=base_url, api_key=None, _strict_response_validation=True)
-            _ = client2
-
-    async def test_default_query_option(self) -> None:
-        client = AsyncAIInbx(
-            base_url=base_url, api_key=api_key, _strict_response_validation=True, default_query={"query_param": "bar"}
-        )
-        request = client._build_request(FinalRequestOptions(method="get", url="/foo"))
-        url = httpx.URL(request.url)
-        assert dict(url.params) == {"query_param": "bar"}
-
-        request = client._build_request(
-            FinalRequestOptions(
-                method="get",
-                url="/foo",
-                params={"foo": "baz", "query_param": "overridden"},
-            )
-        )
-        url = httpx.URL(request.url)
-        assert dict(url.params) == {"foo": "baz", "query_param": "overridden"}
-
-        await client.close()
-
-    async def test_hardcoded_query_params_in_url(self, async_client: AsyncAIInbx) -> None:
-        request = async_client._build_request(FinalRequestOptions(method="get", url="/foo?beta=true"))
-        url = httpx.URL(request.url)
-        assert dict(url.params) == {"beta": "true"}
-
-        request = async_client._build_request(
-            FinalRequestOptions(
-                method="get",
-                url="/foo?beta=true",
-                params={"limit": "10", "page": "abc"},
-            )
-        )
-        url = httpx.URL(request.url)
-        assert dict(url.params) == {"beta": "true", "limit": "10", "page": "abc"}
-
-        request = async_client._build_request(
-            FinalRequestOptions(
-                method="get",
-                url="/files/a%2Fb?beta=true",
-                params={"limit": "10"},
-            )
-        )
-        assert request.url.raw_path == b"/files/a%2Fb?beta=true&limit=10"
-
-    def test_request_extra_json(self, client: AIInbx) -> None:
-        request = client._build_request(
-            FinalRequestOptions(
-                method="post",
-                url="/foo",
-                json_data={"foo": "bar"},
-                extra_json={"baz": False},
-            ),
-        )
-        data = json.loads(request.content.decode("utf-8"))
-        assert data == {"foo": "bar", "baz": False}
-
-        request = client._build_request(
-            FinalRequestOptions(
-                method="post",
-                url="/foo",
-                extra_json={"baz": False},
-            ),
-        )
-        data = json.loads(request.content.decode("utf-8"))
-        assert data == {"baz": False}
-
-        # `extra_json` takes priority over `json_data` when keys clash
-        request = client._build_request(
-            FinalRequestOptions(
-                method="post",
-                url="/foo",
-                json_data={"foo": "bar", "baz": True},
-                extra_json={"baz": None},
-            ),
-        )
-        data = json.loads(request.content.decode("utf-8"))
-        assert data == {"foo": "bar", "baz": None}
-
-    def test_request_extra_headers(self, client: AIInbx) -> None:
-        request = client._build_request(
-            FinalRequestOptions(
-                method="post",
-                url="/foo",
-                **make_request_options(extra_headers={"X-Foo": "Foo"}),
-            ),
-        )
-        assert request.headers.get("X-Foo") == "Foo"
-
-        # `extra_headers` takes priority over `default_headers` when keys clash
-        request = client.with_options(default_headers={"X-Bar": "true"})._build_request(
-            FinalRequestOptions(
-                method="post",
-                url="/foo",
-                **make_request_options(
-                    extra_headers={"X-Bar": "false"},
-                ),
-            ),
-        )
-        assert request.headers.get("X-Bar") == "false"
-
-    def test_request_extra_query(self, client: AIInbx) -> None:
-        request = client._build_request(
-            FinalRequestOptions(
-                method="post",
-                url="/foo",
-                **make_request_options(
-                    extra_query={"my_query_param": "Foo"},
-                ),
-            ),
-        )
-        params = dict(request.url.params)
-        assert params == {"my_query_param": "Foo"}
-
-        # if both `query` and `extra_query` are given, they are merged
-        request = client._build_request(
-            FinalRequestOptions(
-                method="post",
-                url="/foo",
-                **make_request_options(
-                    query={"bar": "1"},
-                    extra_query={"foo": "2"},
-                ),
-            ),
-        )
-        params = dict(request.url.params)
-        assert params == {"bar": "1", "foo": "2"}
-
-        # `extra_query` takes priority over `query` when keys clash
-        request = client._build_request(
-            FinalRequestOptions(
-                method="post",
-                url="/foo",
-                **make_request_options(
-                    query={"foo": "1"},
-                    extra_query={"foo": "2"},
-                ),
-            ),
-        )
-        params = dict(request.url.params)
-        assert params == {"foo": "2"}
-
-    def test_multipart_repeating_array(self, async_client: AsyncAIInbx) -> None:
-        request = async_client._build_request(
-            FinalRequestOptions.construct(
-                method="post",
-                url="/foo",
-                headers={"Content-Type": "multipart/form-data; boundary=6b7ba517decee4a450543ea6ae821c82"},
-                json_data={"array": ["foo", "bar"]},
-                files=[("foo.txt", b"hello world")],
-            )
-        )
-
-        assert request.read().split(b"\r\n") == [
-            b"--6b7ba517decee4a450543ea6ae821c82",
-            b'Content-Disposition: form-data; name="array[]"',
-            b"",
-            b"foo",
-            b"--6b7ba517decee4a450543ea6ae821c82",
-            b'Content-Disposition: form-data; name="array[]"',
-            b"",
-            b"bar",
-            b"--6b7ba517decee4a450543ea6ae821c82",
-            b'Content-Disposition: form-data; name="foo.txt"; filename="upload"',
-            b"Content-Type: application/octet-stream",
-            b"",
-            b"hello world",
-            b"--6b7ba517decee4a450543ea6ae821c82--",
-            b"",
-        ]
-
-    @pytest.mark.respx(base_url=base_url)
-    async def test_binary_content_upload(self, respx_mock: MockRouter, async_client: AsyncAIInbx) -> None:
-        respx_mock.post("/upload").mock(side_effect=mirror_request_content)
-
-        file_content = b"Hello, this is a test file."
-
-        response = await async_client.post(
-            "/upload",
-            content=file_content,
-            cast_to=httpx.Response,
-            options={"headers": {"Content-Type": "application/octet-stream"}},
-        )
-
-        assert response.status_code == 200
-        assert response.request.headers["Content-Type"] == "application/octet-stream"
-        assert response.content == file_content
-
-    async def test_binary_content_upload_with_asynciterator(self) -> None:
-        file_content = b"Hello, this is a test file."
-        counter = Counter()
-        iterator = _make_async_iterator([file_content], counter=counter)
-
-        async def mock_handler(request: httpx.Request) -> httpx.Response:
-            assert counter.value == 0, "the request body should not have been read"
-            return httpx.Response(200, content=await request.aread())
-
-        async with AsyncAIInbx(
-            base_url=base_url,
-            api_key=api_key,
-            _strict_response_validation=True,
-            http_client=httpx.AsyncClient(transport=MockTransport(handler=mock_handler)),
-        ) as client:
-            response = await client.post(
-                "/upload",
-                content=iterator,
-                cast_to=httpx.Response,
-                options={"headers": {"Content-Type": "application/octet-stream"}},
-            )
-
-            assert response.status_code == 200
-            assert response.request.headers["Content-Type"] == "application/octet-stream"
-            assert response.content == file_content
-            assert counter.value == 1
-
-    @pytest.mark.respx(base_url=base_url)
-    async def test_binary_content_upload_with_body_is_deprecated(
-        self, respx_mock: MockRouter, async_client: AsyncAIInbx
-    ) -> None:
-        respx_mock.post("/upload").mock(side_effect=mirror_request_content)
-
-        file_content = b"Hello, this is a test file."
-
-        with pytest.deprecated_call(
-            match="Passing raw bytes as `body` is deprecated and will be removed in a future version. Please pass raw bytes via the `content` parameter instead."
-        ):
-            response = await async_client.post(
-                "/upload",
-                body=file_content,
-                cast_to=httpx.Response,
-                options={"headers": {"Content-Type": "application/octet-stream"}},
-            )
-
-        assert response.status_code == 200
-        assert response.request.headers["Content-Type"] == "application/octet-stream"
-        assert response.content == file_content
-
-    @pytest.mark.respx(base_url=base_url)
-    async def test_basic_union_response(self, respx_mock: MockRouter, async_client: AsyncAIInbx) -> None:
-        class Model1(BaseModel):
-            name: str
-
-        class Model2(BaseModel):
-            foo: str
-
-        respx_mock.get("/foo").mock(return_value=httpx.Response(200, json={"foo": "bar"}))
-
-        response = await async_client.get("/foo", cast_to=cast(Any, Union[Model1, Model2]))
-        assert isinstance(response, Model2)
-        assert response.foo == "bar"
-
-    @pytest.mark.respx(base_url=base_url)
-    async def test_union_response_different_types(self, respx_mock: MockRouter, async_client: AsyncAIInbx) -> None:
-        """Union of objects with the same field name using a different type"""
-
-        class Model1(BaseModel):
-            foo: int
-
-        class Model2(BaseModel):
-            foo: str
-
-        respx_mock.get("/foo").mock(return_value=httpx.Response(200, json={"foo": "bar"}))
-
-        response = await async_client.get("/foo", cast_to=cast(Any, Union[Model1, Model2]))
-        assert isinstance(response, Model2)
-        assert response.foo == "bar"
-
-        respx_mock.get("/foo").mock(return_value=httpx.Response(200, json={"foo": 1}))
-
-        response = await async_client.get("/foo", cast_to=cast(Any, Union[Model1, Model2]))
-        assert isinstance(response, Model1)
-        assert response.foo == 1
-
-    @pytest.mark.respx(base_url=base_url)
-    async def test_non_application_json_content_type_for_json_data(
-        self, respx_mock: MockRouter, async_client: AsyncAIInbx
-    ) -> None:
-        """
-        Response that sets Content-Type to something other than application/json but returns json data
-        """
-
-        class Model(BaseModel):
-            foo: int
-
-        respx_mock.get("/foo").mock(
-            return_value=httpx.Response(
-                200,
-                content=json.dumps({"foo": 2}),
-                headers={"Content-Type": "application/text"},
-            )
-        )
-
-        response = await async_client.get("/foo", cast_to=Model)
-        assert isinstance(response, Model)
-        assert response.foo == 2
-
-    async def test_base_url_setter(self) -> None:
-        client = AsyncAIInbx(
-            base_url="https://example.com/from_init", api_key=api_key, _strict_response_validation=True
-        )
-        assert client.base_url == "https://example.com/from_init/"
-
-        client.base_url = "https://example.com/from_setter"  # type: ignore[assignment]
-
-        assert client.base_url == "https://example.com/from_setter/"
-
-        await client.close()
-
-    async def test_base_url_env(self) -> None:
-        with update_env(AI_INBX_BASE_URL="http://localhost:5000/from/env"):
-            client = AsyncAIInbx(api_key=api_key, _strict_response_validation=True)
-            assert client.base_url == "http://localhost:5000/from/env/"
-
-    @pytest.mark.parametrize(
-        "client",
-        [
-            AsyncAIInbx(
-                base_url="http://localhost:5000/custom/path/", api_key=api_key, _strict_response_validation=True
-            ),
-            AsyncAIInbx(
-                base_url="http://localhost:5000/custom/path/",
-                api_key=api_key,
-                _strict_response_validation=True,
-                http_client=httpx.AsyncClient(),
-            ),
-        ],
-        ids=["standard", "custom http client"],
     )
-    async def test_base_url_trailing_slash(self, client: AsyncAIInbx) -> None:
-        request = client._build_request(
-            FinalRequestOptions(
-                method="post",
-                url="/foo",
-                json_data={"foo": "bar"},
-            ),
-        )
-        assert request.url == "http://localhost:5000/custom/path/foo"
-        await client.close()
+    client = AIInbx(api_key="secret", max_retries=0, http_client=httpx.Client(transport=transport))
+    with pytest.raises(NotFoundError) as caught:
+        client.attachments.content("att_1")
+    assert caught.value.code == "not_prepared"
+    assert str(caught.value) == "No prepared text: preparation is failed"
 
-    @pytest.mark.parametrize(
-        "client",
-        [
-            AsyncAIInbx(
-                base_url="http://localhost:5000/custom/path/", api_key=api_key, _strict_response_validation=True
-            ),
-            AsyncAIInbx(
-                base_url="http://localhost:5000/custom/path/",
-                api_key=api_key,
-                _strict_response_validation=True,
-                http_client=httpx.AsyncClient(),
-            ),
-        ],
-        ids=["standard", "custom http client"],
-    )
-    async def test_base_url_no_trailing_slash(self, client: AsyncAIInbx) -> None:
-        request = client._build_request(
-            FinalRequestOptions(
-                method="post",
-                url="/foo",
-                json_data={"foo": "bar"},
-            ),
-        )
-        assert request.url == "http://localhost:5000/custom/path/foo"
-        await client.close()
 
-    @pytest.mark.parametrize(
-        "client",
-        [
-            AsyncAIInbx(
-                base_url="http://localhost:5000/custom/path/", api_key=api_key, _strict_response_validation=True
-            ),
-            AsyncAIInbx(
-                base_url="http://localhost:5000/custom/path/",
-                api_key=api_key,
-                _strict_response_validation=True,
-                http_client=httpx.AsyncClient(),
-            ),
-        ],
-        ids=["standard", "custom http client"],
-    )
-    async def test_absolute_request_url(self, client: AsyncAIInbx) -> None:
-        request = client._build_request(
-            FinalRequestOptions(
-                method="post",
-                url="https://myapi.com/foo",
-                json_data={"foo": "bar"},
-            ),
-        )
-        assert request.url == "https://myapi.com/foo"
-        await client.close()
-
-    async def test_copied_client_does_not_close_http(self) -> None:
-        test_client = AsyncAIInbx(base_url=base_url, api_key=api_key, _strict_response_validation=True)
-        assert not test_client.is_closed()
-
-        copied = test_client.copy()
-        assert copied is not test_client
-
-        del copied
-
-        await asyncio.sleep(0.2)
-        assert not test_client.is_closed()
-
-    async def test_client_context_manager(self) -> None:
-        test_client = AsyncAIInbx(base_url=base_url, api_key=api_key, _strict_response_validation=True)
-        async with test_client as c2:
-            assert c2 is test_client
-            assert not c2.is_closed()
-            assert not test_client.is_closed()
-        assert test_client.is_closed()
-
-    @pytest.mark.respx(base_url=base_url)
-    async def test_client_response_validation_error(self, respx_mock: MockRouter, async_client: AsyncAIInbx) -> None:
-        class Model(BaseModel):
-            foo: str
-
-        respx_mock.get("/foo").mock(return_value=httpx.Response(200, json={"foo": {"invalid": True}}))
-
-        with pytest.raises(APIResponseValidationError) as exc:
-            await async_client.get("/foo", cast_to=Model)
-
-        assert isinstance(exc.value.__cause__, ValidationError)
-
-    async def test_client_max_retries_validation(self) -> None:
-        with pytest.raises(TypeError, match=r"max_retries cannot be None"):
-            AsyncAIInbx(
-                base_url=base_url, api_key=api_key, _strict_response_validation=True, max_retries=cast(Any, None)
+def test_raw_response_and_binary_content() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/content"):
+            return httpx.Response(
+                200, content=b"attachment", headers={"Content-Type": "text/plain"}
             )
+        return httpx.Response(200, json={"id": "email_1"}, headers={"X-Request-ID": "req_raw"})
 
-    @pytest.mark.respx(base_url=base_url)
-    async def test_received_text_for_expected_json(self, respx_mock: MockRouter) -> None:
-        class Model(BaseModel):
-            name: str
-
-        respx_mock.get("/foo").mock(return_value=httpx.Response(200, text="my-custom-format"))
-
-        strict_client = AsyncAIInbx(base_url=base_url, api_key=api_key, _strict_response_validation=True)
-
-        with pytest.raises(APIResponseValidationError):
-            await strict_client.get("/foo", cast_to=Model)
-
-        non_strict_client = AsyncAIInbx(base_url=base_url, api_key=api_key, _strict_response_validation=False)
-
-        response = await non_strict_client.get("/foo", cast_to=Model)
-        assert isinstance(response, str)  # type: ignore[unreachable]
-
-        await strict_client.close()
-        await non_strict_client.close()
-
-    @pytest.mark.parametrize(
-        "remaining_retries,retry_after,timeout",
-        [
-            [3, "20", 20],
-            [3, "0", 0.5],
-            [3, "-10", 0.5],
-            [3, "60", 60],
-            [3, "61", 0.5],
-            [3, "Fri, 29 Sep 2023 16:26:57 GMT", 20],
-            [3, "Fri, 29 Sep 2023 16:26:37 GMT", 0.5],
-            [3, "Fri, 29 Sep 2023 16:26:27 GMT", 0.5],
-            [3, "Fri, 29 Sep 2023 16:27:37 GMT", 60],
-            [3, "Fri, 29 Sep 2023 16:27:38 GMT", 0.5],
-            [3, "99999999999999999999999999999999999", 0.5],
-            [3, "Zun, 29 Sep 2023 16:26:27 GMT", 0.5],
-            [3, "", 0.5],
-            [2, "", 0.5 * 2.0],
-            [1, "", 0.5 * 4.0],
-            [-1100, "", 8],  # test large number potentially overflowing
-        ],
+    client = AIInbx(
+        api_key="secret", http_client=httpx.Client(transport=httpx.MockTransport(handler))
     )
-    @mock.patch("time.time", mock.MagicMock(return_value=1696004797))
-    async def test_parse_retry_after_header(
-        self, remaining_retries: int, retry_after: str, timeout: float, async_client: AsyncAIInbx
-    ) -> None:
-        headers = httpx.Headers({"retry-after": retry_after})
-        options = FinalRequestOptions(method="get", url="/foo", max_retries=3)
-        calculated = async_client._calculate_retry_timeout(remaining_retries, options, headers)
-        assert calculated == pytest.approx(timeout, 0.5 * 0.875)  # pyright: ignore[reportUnknownMemberType]
+    raw = client.with_raw_response.emails.retrieve("email_1")
+    assert isinstance(raw, RawResponse)
+    assert raw.request_id == "req_raw"
+    assert raw.json()["id"] == "email_1"
+    assert client.attachments.content("att_1") == "attachment"
 
-    @mock.patch("aiinbx._base_client.BaseClient._calculate_retry_timeout", _low_retry_timeout)
-    @pytest.mark.respx(base_url=base_url)
-    async def test_retrying_timeout_errors_doesnt_leak(self, respx_mock: MockRouter, async_client: AsyncAIInbx) -> None:
-        respx_mock.post("/threads/search").mock(side_effect=httpx.TimeoutException("Test timeout error"))
 
-        with pytest.raises(APITimeoutError):
-            await async_client.threads.with_streaming_response.search().__aenter__()
+def test_management_bodies_and_query_names_match_v2_contract() -> None:
+    seen: list[tuple[str, str, dict[str, object]]] = []
 
-        assert _get_open_connections(async_client) == 0
+    def handler(request: httpx.Request) -> httpx.Response:
+        body = json.loads(request.content) if request.content else {}
+        seen.append((request.method, request.url.path, body))
+        if request.url.path == "/api/v2/emails":
+            assert request.url.params["direction"] == "outbound"
+            assert "mailbox_id" not in request.url.params
+        if request.method == "DELETE":
+            return httpx.Response(204)
+        return httpx.Response(200, json={"data": [], "spread": 20})
 
-    @mock.patch("aiinbx._base_client.BaseClient._calculate_retry_timeout", _low_retry_timeout)
-    @pytest.mark.respx(base_url=base_url)
-    async def test_retrying_status_errors_doesnt_leak(self, respx_mock: MockRouter, async_client: AsyncAIInbx) -> None:
-        respx_mock.post("/threads/search").mock(return_value=httpx.Response(500))
+    client = AIInbx(
+        api_key="secret", http_client=httpx.Client(transport=httpx.MockTransport(handler))
+    )
+    client.emails.list(direction="outbound")
+    client.mailboxes.connect(
+        {
+            "provider": "google",
+            "return_to": "https://example.com/done",
+            "app_id": "app_00000000000000000000000000000000",
+            "backfill_days": 14,
+        }
+    )
+    client.webhook_endpoints.rotate_secret("wh_1", {"grace_seconds": 60})
+    client.suppressions.add(
+        {"addresses": ["ada@example.com"], "key": "marketing", "scope": "optional"}
+    )
+    client.pacing_rules.update_spread({"spread": 20})
+    client.pacing.release({"email_ids": ["eml_1", "eml_2"], "count_toward_limits": False})
+    assert seen[1][2] == {
+        "provider": "google",
+        "return_to": "https://example.com/done",
+        "app_id": "app_00000000000000000000000000000000",
+        "backfill_days": 14,
+    }
+    assert seen[2][2] == {"grace_seconds": 60}
+    assert seen[3][2]["addresses"] == ["ada@example.com"]
+    assert seen[4] == ("PATCH", "/api/v2/pacing-rules/spread", {"spread": 20})
+    assert seen[5][2] == {"email_ids": ["eml_1", "eml_2"], "count_toward_limits": False}
 
+
+def test_attachments_follow_redirects_and_return_bytes_and_text() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.host == "api.aiinbx.com":
+            suffix = "prepared" if request.url.path.endswith("/content") else "original"
+            return httpx.Response(307, headers={"Location": f"https://storage.example/{suffix}"})
+        if request.url.path == "/prepared":
+            return httpx.Response(200, content=b"prepared text")
+        return httpx.Response(200, content=b"\x00\x01binary")
+
+    client = AIInbx(
+        api_key="secret", http_client=httpx.Client(transport=httpx.MockTransport(handler))
+    )
+    assert client.attachments.download("att_1") == b"\x00\x01binary"
+    assert client.attachments.content("att_1") == "prepared text"
+
+
+def test_no_content_delete_returns_none() -> None:
+    client = AIInbx(
+        api_key="secret",
+        http_client=httpx.Client(transport=httpx.MockTransport(lambda _: httpx.Response(204))),
+    )
+    client.domains.delete("dom_1")
+
+
+
+@pytest.mark.asyncio
+async def test_async_client_has_resource_parity() -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/api/v2/threads/thread_1"
+        return httpx.Response(
+            200, json={"id": "thread_1", "created_at": "now", "updated_at": "now"}
+        )
+
+    http = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    client = AsyncAIInbx(api_key="secret", http_client=http)
+    thread = await client.threads.retrieve("thread_1")
+    assert thread["id"] == "thread_1"
+    await http.aclose()
+
+
+@pytest.mark.asyncio
+async def test_async_spaces_and_space_filter_parity() -> None:
+    seen: list[tuple[str, str, dict[str, str]]] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        seen.append((request.method, request.url.path, dict(request.url.params)))
+        if request.method == "POST":
+            assert json.loads(request.content) == {"name": "Acme"}
+            return httpx.Response(201, json={"id": "spc_1", "name": "Acme", "created_at": "now"})
+        return httpx.Response(200, json={"data": [{"id": "eml_1"}], "next_cursor": None})
+
+    http = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    client = AsyncAIInbx(api_key="secret", http_client=http)
+    space = await client.spaces.create({"name": "Acme"})
+    ids = [email["id"] async for email in client.emails.iter(space=space["id"])]
+    assert ids == ["eml_1"]
+    assert seen == [
+        ("POST", "/api/v2/spaces", {}),
+        ("GET", "/api/v2/emails", {"space": "spc_1"}),
+    ]
+    await http.aclose()
+
+
+@pytest.mark.asyncio
+async def test_async_pacing_release_uses_v2_body() -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/api/v2/pacing-queue/release"
+        assert json.loads(request.content) == {
+            "email_ids": ["eml_1", "eml_2"],
+            "count_toward_limits": False,
+        }
+        return httpx.Response(200, json={"data": ["eml_1", "eml_2"]})
+
+    http = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    client = AsyncAIInbx(api_key="secret", http_client=http)
+    result = await client.pacing.release(
+        {"email_ids": ["eml_1", "eml_2"], "count_toward_limits": False}
+    )
+    assert result["data"] == ["eml_1", "eml_2"]
+    await http.aclose()
+
+
+@pytest.mark.asyncio
+async def test_async_reply_and_auto_pagination_parity() -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/reply"):
+            assert json.loads(request.content) == {"text": "Hello"}
+            return httpx.Response(201, json={"id": "eml_reply", "status": "queued"})
+        cursor = request.url.params.get("cursor")
+        if cursor is None:
+            return httpx.Response(200, json={"data": [{"id": "thr_1"}], "next_cursor": "two"})
+        return httpx.Response(200, json={"data": [{"id": "thr_2"}], "next_cursor": None})
+
+    http = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    client = AsyncAIInbx(api_key="secret", http_client=http)
+    reply = await client.threads.reply("thr_1", {"text": "Hello"})
+    assert reply["id"] == "eml_reply"
+    ids = [thread["id"] async for thread in client.threads.iter(limit=1)]
+    assert ids == ["thr_1", "thr_2"]
+    await http.aclose()
+
+
+def test_retries_a_send_only_with_an_idempotency_key_or_on_429() -> None:
+    def attempts_for(status: int, idempotency_key: str | None = None) -> int:
+        attempts = 0
+
+        def handler(_: httpx.Request) -> httpx.Response:
+            nonlocal attempts
+            attempts += 1
+            return httpx.Response(status, headers={"Retry-After": "0"}, json={})
+
+        client = AIInbx(
+            api_key="secret",
+            max_retries=1,
+            http_client=httpx.Client(transport=httpx.MockTransport(handler)),
+        )
         with pytest.raises(APIStatusError):
-            await async_client.threads.with_streaming_response.search().__aenter__()
-        assert _get_open_connections(async_client) == 0
+            client.threads.reply("thr_1", {"text": "Hi"}, idempotency_key=idempotency_key)
+        return attempts
 
-    @pytest.mark.parametrize("failures_before_success", [0, 2, 4])
-    @mock.patch("aiinbx._base_client.BaseClient._calculate_retry_timeout", _low_retry_timeout)
-    @pytest.mark.respx(base_url=base_url)
-    @pytest.mark.parametrize("failure_mode", ["status", "exception"])
-    async def test_retries_taken(
-        self,
-        async_client: AsyncAIInbx,
-        failures_before_success: int,
-        failure_mode: Literal["status", "exception"],
-        respx_mock: MockRouter,
-    ) -> None:
-        client = async_client.with_options(max_retries=4)
+    assert attempts_for(500) == 1
+    assert attempts_for(500, "once") == 2
+    assert attempts_for(429) == 2
+    assert attempts_for(409, "once") == 1
 
-        nb_retries = 0
 
-        def retry_handler(_request: httpx.Request) -> httpx.Response:
-            nonlocal nb_retries
-            if nb_retries < failures_before_success:
-                nb_retries += 1
-                if failure_mode == "exception":
-                    raise RuntimeError("oops")
-                return httpx.Response(500)
-            return httpx.Response(200)
+def test_never_retries_a_conflict() -> None:
+    attempts = 0
 
-        respx_mock.post("/threads/search").mock(side_effect=retry_handler)
+    def handler(_: httpx.Request) -> httpx.Response:
+        nonlocal attempts
+        attempts += 1
+        return httpx.Response(409, json={"code": "external_id_taken"})
 
-        response = await client.threads.with_raw_response.search()
+    client = AIInbx(
+        api_key="secret",
+        max_retries=2,
+        http_client=httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+    with pytest.raises(ConflictError):
+        client.emails.retrieve("email_1")
+    assert attempts == 1
 
-        assert response.retries_taken == failures_before_success
-        assert int(response.http_request.headers.get("x-stainless-retry-count")) == failures_before_success
 
-    @pytest.mark.parametrize("failures_before_success", [0, 2, 4])
-    @mock.patch("aiinbx._base_client.BaseClient._calculate_retry_timeout", _low_retry_timeout)
-    @pytest.mark.respx(base_url=base_url)
-    async def test_omit_retry_count_header(
-        self, async_client: AsyncAIInbx, failures_before_success: int, respx_mock: MockRouter
-    ) -> None:
-        client = async_client.with_options(max_retries=4)
-
-        nb_retries = 0
-
-        def retry_handler(_request: httpx.Request) -> httpx.Response:
-            nonlocal nb_retries
-            if nb_retries < failures_before_success:
-                nb_retries += 1
-                return httpx.Response(500)
-            return httpx.Response(200)
-
-        respx_mock.post("/threads/search").mock(side_effect=retry_handler)
-
-        response = await client.threads.with_raw_response.search(extra_headers={"x-stainless-retry-count": Omit()})
-
-        assert len(response.http_request.headers.get_list("x-stainless-retry-count")) == 0
-
-    @pytest.mark.parametrize("failures_before_success", [0, 2, 4])
-    @mock.patch("aiinbx._base_client.BaseClient._calculate_retry_timeout", _low_retry_timeout)
-    @pytest.mark.respx(base_url=base_url)
-    async def test_overwrite_retry_count_header(
-        self, async_client: AsyncAIInbx, failures_before_success: int, respx_mock: MockRouter
-    ) -> None:
-        client = async_client.with_options(max_retries=4)
-
-        nb_retries = 0
-
-        def retry_handler(_request: httpx.Request) -> httpx.Response:
-            nonlocal nb_retries
-            if nb_retries < failures_before_success:
-                nb_retries += 1
-                return httpx.Response(500)
-            return httpx.Response(200)
-
-        respx_mock.post("/threads/search").mock(side_effect=retry_handler)
-
-        response = await client.threads.with_raw_response.search(extra_headers={"x-stainless-retry-count": "42"})
-
-        assert response.http_request.headers.get("x-stainless-retry-count") == "42"
-
-    async def test_get_platform(self) -> None:
-        platform = await asyncify(get_platform)()
-        assert isinstance(platform, (str, OtherPlatform))
-
-    async def test_proxy_environment_variables(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        # Test that the proxy environment variables are set correctly
-        monkeypatch.setenv("HTTPS_PROXY", "https://example.org")
-        # Delete in case our environment has any proxy env vars set
-        monkeypatch.delenv("HTTP_PROXY", raising=False)
-        monkeypatch.delenv("ALL_PROXY", raising=False)
-        monkeypatch.delenv("NO_PROXY", raising=False)
-        monkeypatch.delenv("http_proxy", raising=False)
-        monkeypatch.delenv("https_proxy", raising=False)
-        monkeypatch.delenv("all_proxy", raising=False)
-        monkeypatch.delenv("no_proxy", raising=False)
-
-        client = DefaultAsyncHttpxClient()
-
-        mounts = tuple(client._mounts.items())
-        assert len(mounts) == 1
-        assert mounts[0][0].pattern == "https://"
-
-    @pytest.mark.filterwarnings("ignore:.*deprecated.*:DeprecationWarning")
-    async def test_default_client_creation(self) -> None:
-        # Ensure that the client can be initialized without any exceptions
-        DefaultAsyncHttpxClient(
-            verify=True,
-            cert=None,
-            trust_env=True,
-            http1=True,
-            http2=False,
-            limits=httpx.Limits(max_connections=100, max_keepalive_connections=20),
+def test_status_error_carries_problem_issues() -> None:
+    transport = httpx.MockTransport(
+        lambda _: httpx.Response(
+            422,
+            json={
+                "code": "invalid_request",
+                "detail": "Request body is invalid",
+                "issues": [{"path": "to", "message": "Required"}],
+            },
         )
-
-    @pytest.mark.respx(base_url=base_url)
-    async def test_follow_redirects(self, respx_mock: MockRouter, async_client: AsyncAIInbx) -> None:
-        # Test that the default follow_redirects=True allows following redirects
-        respx_mock.post("/redirect").mock(
-            return_value=httpx.Response(302, headers={"Location": f"{base_url}/redirected"})
-        )
-        respx_mock.get("/redirected").mock(return_value=httpx.Response(200, json={"status": "ok"}))
-
-        response = await async_client.post("/redirect", body={"key": "value"}, cast_to=httpx.Response)
-        assert response.status_code == 200
-        assert response.json() == {"status": "ok"}
-
-    @pytest.mark.respx(base_url=base_url)
-    async def test_follow_redirects_disabled(self, respx_mock: MockRouter, async_client: AsyncAIInbx) -> None:
-        # Test that follow_redirects=False prevents following redirects
-        respx_mock.post("/redirect").mock(
-            return_value=httpx.Response(302, headers={"Location": f"{base_url}/redirected"})
-        )
-
-        with pytest.raises(APIStatusError) as exc_info:
-            await async_client.post(
-                "/redirect", body={"key": "value"}, options={"follow_redirects": False}, cast_to=httpx.Response
-            )
-
-        assert exc_info.value.response.status_code == 302
-        assert exc_info.value.response.headers["Location"] == f"{base_url}/redirected"
+    )
+    client = AIInbx(api_key="secret", http_client=httpx.Client(transport=transport))
+    with pytest.raises(APIStatusError) as caught:
+        client.domains.create({"name": ""})
+    assert caught.value.issues == [{"path": "to", "message": "Required"}]

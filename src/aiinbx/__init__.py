@@ -1,92 +1,43 @@
-# File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
-
-import typing as _t
-
-from . import types
-from ._types import NOT_GIVEN, Omit, NoneType, NotGiven, Transport, ProxiesTypes, omit, not_given
-from ._utils import file_from_path
-from ._client import AIInbx, Client, Stream, Timeout, Transport, AsyncAIInbx, AsyncClient, AsyncStream, RequestOptions
-from ._models import BaseModel
-from ._version import __title__, __version__
-from ._response import APIResponse as APIResponse, AsyncAPIResponse as AsyncAPIResponse
-from ._constants import DEFAULT_TIMEOUT, DEFAULT_MAX_RETRIES, DEFAULT_CONNECTION_LIMITS
-from ._exceptions import (
-    APIError,
+from ._base import CursorPage, RawResponse
+from ._client import AIInbx, AsyncAIInbx
+from ._errors import (
     AIInbxError,
-    ConflictError,
-    NotFoundError,
-    APIStatusError,
-    RateLimitError,
-    APITimeoutError,
-    BadRequestError,
     APIConnectionError,
+    APIStatusError,
+    APITimeoutError,
     AuthenticationError,
+    BadRequestError,
+    ConflictError,
     InternalServerError,
+    NotFoundError,
     PermissionDeniedError,
+    RateLimitError,
     UnprocessableEntityError,
-    APIResponseValidationError,
+    WebhookVerificationError,
 )
-from ._base_client import DefaultHttpxClient, DefaultAioHttpClient, DefaultAsyncHttpxClient
-from ._utils._logs import setup_logging as _setup_logging
+from ._version import __version__ as __version__
+from ._webhooks import verify_webhook
+from .models import WebhookEvent
 
 __all__ = [
-    "types",
-    "__version__",
-    "__title__",
-    "NoneType",
-    "Transport",
-    "ProxiesTypes",
-    "NotGiven",
-    "NOT_GIVEN",
-    "not_given",
-    "Omit",
-    "omit",
-    "AIInbxError",
-    "APIError",
-    "APIStatusError",
-    "APITimeoutError",
-    "APIConnectionError",
-    "APIResponseValidationError",
-    "BadRequestError",
-    "AuthenticationError",
-    "PermissionDeniedError",
-    "NotFoundError",
-    "ConflictError",
-    "UnprocessableEntityError",
-    "RateLimitError",
-    "InternalServerError",
-    "Timeout",
-    "RequestOptions",
-    "Client",
-    "AsyncClient",
-    "Stream",
-    "AsyncStream",
     "AIInbx",
     "AsyncAIInbx",
-    "file_from_path",
-    "BaseModel",
-    "DEFAULT_TIMEOUT",
-    "DEFAULT_MAX_RETRIES",
-    "DEFAULT_CONNECTION_LIMITS",
-    "DefaultHttpxClient",
-    "DefaultAsyncHttpxClient",
-    "DefaultAioHttpClient",
+    "AIInbxError",
+    "APIConnectionError",
+    "APIStatusError",
+    "APITimeoutError",
+    "AuthenticationError",
+    "BadRequestError",
+    "ConflictError",
+    "CursorPage",
+    "InternalServerError",
+    "NotFoundError",
+    "PermissionDeniedError",
+    "RateLimitError",
+    "RawResponse",
+    "UnprocessableEntityError",
+    "WebhookVerificationError",
+    "WebhookEvent",
+    "verify_webhook",
 ]
 
-if not _t.TYPE_CHECKING:
-    from ._utils._resources_proxy import resources as resources
-
-_setup_logging()
-
-# Update the __module__ attribute for exported symbols so that
-# error messages point to this module instead of the module
-# it was originally defined in, e.g.
-# aiinbx._exceptions.NotFoundError -> aiinbx.NotFoundError
-__locals = locals()
-for __name in __all__:
-    if not __name.startswith("__"):
-        try:
-            __locals[__name].__module__ = "aiinbx"
-        except (TypeError, AttributeError):
-            # Some of our exported symbols are builtins which we can't set attributes for.
-            pass

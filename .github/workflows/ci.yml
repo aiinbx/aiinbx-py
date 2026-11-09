@@ -1,104 +1,43 @@
+# Runs in github.com/aiinbx/aiinbx-py, the public repository that receives this
+# package's source on every release. A version tag becomes a GitHub release
+# once the same checks pass.
 name: CI
+
 on:
   push:
-    branches:
-      - '**'
-      - '!integrated/**'
-      - '!stl-preview-head/**'
-      - '!stl-preview-base/**'
-      - '!generated'
-      - '!codegen/**'
-      - 'codegen/stl/**'
+    branches: [main]
+    tags: ["v*"]
   pull_request:
-    branches-ignore:
-      - 'stl-preview-head/**'
-      - 'stl-preview-base/**'
 
 jobs:
-  lint:
-    timeout-minutes: 10
-    name: lint
-    runs-on: ${{ startsWith(github.repository, 'stainless-sdks/') && 'depot-ubuntu-24.04' || 'ubuntu-latest' }}
-    if: (github.event_name == 'push' || github.event.pull_request.head.repo.fork) && (github.event_name != 'push' || github.event.head_commit.message != 'codegen metadata')
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Install Rye
-        run: |
-          curl -sSf https://rye.astral.sh/get | bash
-          echo "$HOME/.rye/shims" >> $GITHUB_PATH
-        env:
-          RYE_VERSION: '0.44.0'
-          RYE_INSTALL_OPTION: '--yes'
-
-      - name: Install dependencies
-        run: rye sync --all-features
-
-      - name: Run lints
-        run: ./scripts/lint
-
-  build:
-    if: (github.event_name == 'push' || github.event.pull_request.head.repo.fork) && (github.event_name != 'push' || github.event.head_commit.message != 'codegen metadata')
-    timeout-minutes: 10
-    name: build
+  test:
+    runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write
-    runs-on: ${{ startsWith(github.repository, 'stainless-sdks/') && 'depot-ubuntu-24.04' || 'ubuntu-latest' }}
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Install Rye
-        run: |
-          curl -sSf https://rye.astral.sh/get | bash
-          echo "$HOME/.rye/shims" >> $GITHUB_PATH
-        env:
-          RYE_VERSION: '0.44.0'
-          RYE_INSTALL_OPTION: '--yes'
-
-      - name: Install dependencies
-        run: rye sync --all-features
-
-      - name: Run build
-        run: rye build
-
-      - name: Get GitHub OIDC Token
-        if: |-
-          github.repository == 'stainless-sdks/ai-inbx-python' &&
-          !startsWith(github.ref, 'refs/heads/stl/')
-        id: github-oidc
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v6
         with:
-          script: core.setOutput('github_token', await core.getIDToken());
+          python-version: "3.13"
+      - run: uv sync --frozen --all-extras --dev
+      - run: uv run ruff check .
+      - run: uv run mypy src
+      - run: uv run pytest
+      - run: uv build
 
-      - name: Upload tarball
-        if: |-
-          github.repository == 'stainless-sdks/ai-inbx-python' &&
-          !startsWith(github.ref, 'refs/heads/stl/')
-        env:
-          URL: https://pkg.stainless.com/s
-          AUTH: ${{ steps.github-oidc.outputs.github_token }}
-          SHA: ${{ github.sha }}
-        run: ./scripts/utils/upload-artifact.sh
-
-  test:
-    timeout-minutes: 10
-    name: test
-    runs-on: ${{ startsWith(github.repository, 'stainless-sdks/') && 'depot-ubuntu-24.04' || 'ubuntu-latest' }}
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.fork
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Install Rye
-        run: |
-          curl -sSf https://rye.astral.sh/get | bash
-          echo "$HOME/.rye/shims" >> $GITHUB_PATH
+      - name: Create the GitHub release
         env:
-          RYE_VERSION: '0.44.0'
-          RYE_INSTALL_OPTION: '--yes'
-
-      - name: Bootstrap
-        run: ./scripts/bootstrap
-
-      - name: Run tests
-        run: ./scripts/test
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release view "$TAG" >/dev/null 2>&1 && exit 0
+          gh release create "$TAG" --verify-tag --title "$TAG" \
+            --notes "Published to PyPI as [aiinbx ${TAG#v}](https://pypi.org/project/aiinbx/${TAG#v}/)."
