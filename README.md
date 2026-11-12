@@ -82,9 +82,11 @@ Sends, replies and forwards take an `idempotency_key`; every call takes a
 
 ## Spaces
 
-A space groups a customer's domains, mailboxes and mail. Pass `space_id` when
-creating a domain, mailbox, suppression or pacing rule; emails and threads
-inherit the space of the domain or mailbox they went through. Lists of those
+A space groups a customer's domains, mailboxes, assigned addresses and mail.
+Pass `space_id` when creating a domain, mailbox, suppression or pacing rule, or
+when assigning a single address; emails and threads inherit the space of the
+address they went through when it is assigned to one, else of its domain or
+mailbox. Lists of those
 take a `space=` filter: pass a space ID for that space, `"none"` for only the
 workspace's own resources (`space_id` of `None`), or omit it for both the
 workspace and all spaces. API keys and webhook endpoints belong to the
@@ -110,6 +112,26 @@ client.emails.send(
         "text": "Sent from Acme's own subdomain.",
     }
 )
+# Or one address of a verified domain you already have, in the customer's space: no DNS.
+client.addresses.assign({"address": "anna@agents.example.com", "space_id": space["id"]})
+assigned = client.addresses.list(space=space["id"])["data"]
+client.addresses.remove("anna@agents.example.com")  # back in its domain's space
+```
+
+Use the customer's own domain when they bring one, a subdomain when each
+customer needs a name of their own or any number of addresses, and an assigned
+address when each customer — or each agent — has one or a few addresses on a
+domain you already have.
+
+When several addresses of one space write to the same contacts,
+`thread_across_addresses` lets mail without reply headers join any thread of
+the space, not only one its address takes part in. It starts off; real replies
+always join their thread. The workspace has the same switch for mail outside
+spaces.
+
+```python
+client.spaces.update(space["id"], {"thread_across_addresses": True})
+client.workspaces.update({"thread_across_addresses": True})
 ```
 
 ## Raw responses and request IDs

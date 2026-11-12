@@ -5,7 +5,9 @@ from typing_extensions import TypedDict
 
 from .._base import AsyncTransport, SyncTransport
 from .._resources import (
+    Addresses,
     ApiKeys,
+    AsyncAddresses,
     AsyncApiKeys,
     AsyncAttachments,
     AsyncDomains,
@@ -17,6 +19,7 @@ from .._resources import (
     AsyncOauthApps,
     AsyncPacing,
     AsyncPacingRules,
+    AsyncRawAddresses,
     AsyncRawApiKeys,
     AsyncRawAttachments,
     AsyncRawDomains,
@@ -48,6 +51,7 @@ from .._resources import (
     OauthApps,
     Pacing,
     PacingRules,
+    RawAddresses,
     RawApiKeys,
     RawAttachments,
     RawDomains,
@@ -94,6 +98,7 @@ class Resources:
 
     def __init__(self, client: SyncTransport) -> None:
         self.spaces = Spaces(client)
+        self.addresses = Addresses(client)
         self.api_keys = ApiKeys(client)
         self.emails = Emails(client)
         self.threads = Threads(client)
@@ -116,6 +121,7 @@ class RawResources:
 
     def __init__(self, client: SyncTransport) -> None:
         self.spaces = RawSpaces(client)
+        self.addresses = RawAddresses(client)
         self.api_keys = RawApiKeys(client)
         self.emails = RawEmails(client)
         self.threads = RawThreads(client)
@@ -138,6 +144,7 @@ class AsyncResources:
 
     def __init__(self, client: AsyncTransport) -> None:
         self.spaces = AsyncSpaces(client)
+        self.addresses = AsyncAddresses(client)
         self.api_keys = AsyncApiKeys(client)
         self.emails = AsyncEmails(client)
         self.threads = AsyncThreads(client)
@@ -160,6 +167,7 @@ class AsyncRawResources:
 
     def __init__(self, client: AsyncTransport) -> None:
         self.spaces = AsyncRawSpaces(client)
+        self.addresses = AsyncRawAddresses(client)
         self.api_keys = AsyncRawApiKeys(client)
         self.emails = AsyncRawEmails(client)
         self.threads = AsyncRawThreads(client)

@@ -19,9 +19,12 @@ from .._base import (
     wire,
 )
 from ..models import (
+    Address,
+    AddressPage,
     ApiKey,
     ApiKeyCreated,
     ApiKeyPage,
+    AssignAddressRequest,
     ConnectMailboxRequest,
     ConnectMailboxResponse,
     CreateApiKeyRequest,
@@ -93,7 +96,9 @@ from ..models import (
 )
 
 __all__ = [
+    "Addresses",
     "ApiKeys",
+    "AsyncAddresses",
     "AsyncApiKeys",
     "AsyncAttachments",
     "AsyncDomains",
@@ -105,6 +110,7 @@ __all__ = [
     "AsyncOauthApps",
     "AsyncPacing",
     "AsyncPacingRules",
+    "AsyncRawAddresses",
     "AsyncRawApiKeys",
     "AsyncRawAttachments",
     "AsyncRawDomains",
@@ -137,6 +143,7 @@ __all__ = [
     "OauthApps",
     "Pacing",
     "PacingRules",
+    "RawAddresses",
     "RawApiKeys",
     "RawAttachments",
     "RawDomains",
@@ -215,12 +222,13 @@ class Spaces(SyncResource):
         """Create a space.
 
         Creates a space — one per customer, typically. Domains, mailboxes, rules and suppressions
-        are put in a space with `space_id` when they are created, and every email and thread
-        inherits the space of the domain or mailbox it went through. Anything created without a
-        `space_id` belongs to the workspace itself and `space_id` reads as null. API keys and
-        webhook endpoints belong to the workspace. `external_id` is your own id for the customer:
-        unique per workspace, so a second space for the same customer is `409 external_id_taken`,
-        and the space can be found by it with `GET /spaces?external_id=`.
+        are put in a space with `space_id` when they are created, and single addresses with `POST
+        /addresses`; every email and thread inherits the space of the address it went through
+        when that address is assigned to one, else of its domain or mailbox. Anything created
+        without a `space_id` belongs to the workspace itself and `space_id` reads as null. API
+        keys and webhook endpoints belong to the workspace. `external_id` is your own id for the
+        customer: unique per workspace, so a second space for the same customer is `409
+        external_id_taken`, and the space can be found by it with `GET /spaces?external_id=`.
         """
         return self._request(
             "POST",
@@ -237,7 +245,8 @@ class Spaces(SyncResource):
     ) -> Space:
         """Retrieve a space.
 
-        Returns one space by id, with its name and the `external_id` you gave it.
+        Returns one space by id, with its name, the `external_id` you gave it and its
+        `thread_across_addresses` switch.
         """
         return self._request(
             "GET",
@@ -254,8 +263,8 @@ class Spaces(SyncResource):
     ) -> Space:
         """Update a space.
 
-        Changes the space's name or `external_id`; only the fields given change, and
-        `external_id: null` clears it. Nothing in the space moves.
+        Changes the space's name, `external_id` or `thread_across_addresses`; only the fields
+        given change, and `external_id: null` clears it. Nothing in the space moves.
         """
         return self._request(
             "PATCH",
@@ -275,12 +284,125 @@ class Spaces(SyncResource):
         Marks the space for deletion and starts its teardown in the background. The space
         immediately stops accepting work and no longer appears in the API; its domains then come
         off DNS verification and sending, its mailboxes are disconnected, and its emails,
-        threads, rules and suppressions are removed. A wildcard domain in the space is deleted
-        with its subdomains, including any filed in other spaces. Admin only.
+        threads, rules and suppressions are removed. Addresses assigned to the space are
+        unassigned; one whose domain lives in another space is in that domain's space again from
+        its next email on. A wildcard domain in the space is deleted with its subdomains,
+        including any filed in other spaces, and a domain deleted with the space takes the
+        assignments of its addresses with it, whatever space they are in. Admin only.
         """
         return self._request(
             "DELETE",
             f"/spaces/{path_segment(space_id)}",
+            timeout=timeout,
+        )
+
+
+class Addresses(SyncResource):
+    """Single addresses assigned to a space of their own, whatever space their domain is in."""
+
+    def list(
+        self,
+        *,
+        limit: int | None = None,
+        cursor: str | None = None,
+        space: str | None = None,
+        address: str | None = None,
+        timeout: Timeout = None,
+    ) -> AddressPage:
+        """List addresses.
+
+        Lists the addresses assigned to a space of their own, newest first. Filter by `space` for
+        one space's addresses, or by `address` to find where one address is assigned.
+
+        A listed assignment takes effect while the domain entry it was made on is the one in
+        service. Moving the domain to another space adds a new entry for the name; once that
+        entry sends and receives, the address is in the domain's space again until it is assigned
+        again, and the old assignment stays listed until the old entry is deleted, which removes
+        it.
+        """
+        return self._request(
+            "GET",
+            "/addresses",
+            params={
+                "limit": limit,
+                "cursor": cursor,
+                "space": space,
+                "address": address,
+            },
+            timeout=timeout,
+        )
+
+    def iter(
+        self,
+        *,
+        limit: int | None = None,
+        space: str | None = None,
+        address: str | None = None,
+        timeout: Timeout = None,
+    ) -> Iterator[Address]:
+        """List addresses, every page."""
+        yield from iterate_pages(
+            lambda cursor: self.list(
+                cursor=cursor,
+                limit=limit,
+                space=space,
+                address=address,
+                timeout=timeout,
+            )
+        )
+
+    def assign(
+        self,
+        params: AssignAddressRequest,
+        *,
+        timeout: Timeout = None,
+    ) -> Address:
+        """Assign an address to a space.
+
+        Assigns one address of a verified domain of the workspace to a space, whatever space its
+        domain is in: one shared domain, `anna@agents.com` in one customer's space and
+        `bob@agents.com` in another's, with no DNS change. The domain still signs and carries the
+        address's mail; everything else follows the address's space — its mail and threads, the
+        `space_id` on its events and emails, its send limits, suppression lists and sender
+        reputation. `space_id: null` assigns it to the workspace itself.
+
+        The address assigned on its own wins over its domain's space. A plus-tagged address —
+        `anna+orders@agents.com` — goes where `anna@agents.com` goes unless it is assigned
+        itself. An address that is not assigned is in its domain's space, as before.
+
+        Assigning an address that is already assigned moves it. Mail it already has stays in the
+        space it was in, with that space's suppression lists; sends from it still queued or
+        scheduled fail with `sender_unknown`, as they do when a domain moves. Mail already on its
+        way while it moves stays in the space it was headed to. An agent login already connected
+        to the address stays on the old space: it keeps reading the mail there and its sends are
+        refused; connect it again for the new space. An address on no domain of the workspace
+        fails with `sender_unknown`, one on a domain that has not verified with `409
+        domain_unverified`. An assigned address does not count against the plan; the emails it
+        sends and receives do, as any email does.
+        """
+        return self._request(
+            "POST",
+            "/addresses",
+            json=params,
+            timeout=timeout,
+        )
+
+    def remove(
+        self,
+        address: str,
+        *,
+        timeout: Timeout = None,
+    ) -> None:
+        """Remove an address from its space.
+
+        Removes the assignment: from its next email on, the address is where its untagged address
+        is assigned — `anna@agents.com` for `anna+orders@agents.com` — else in its domain's space
+        again. Mail it already has stays in the space it was in. An address that is not assigned
+        is `404 not_found`.
+        """
+        return self._request(
+            "DELETE",
+            f"/addresses/{path_segment(address)}",
             timeout=timeout,
         )
 
@@ -748,7 +870,8 @@ class Domains(SyncResource):
         has. A name one label under a wildcard of yours — `hi.acme.dev` under `*.acme.dev` — is
         created as a subdomain of it: no records, verified as soon as the wildcard is, in
         whatever `space_id` you give it. That is how a platform hands each customer an address of
-        their own without touching DNS again.
+        their own without touching DNS again. To give customers single addresses of one shared
+        domain instead, assign each address to its customer's space with `POST /addresses`.
 
         A domain name can be connected in several spaces and workspaces, but sending and
         receiving are enabled for the one whose DKIM key is published. To move them, add the
@@ -1797,8 +1920,9 @@ class Workspaces(SyncResource):
     ) -> Workspace:
         """Retrieve the workspace.
 
-        Returns the workspace the request acts in: its name, its slug, and the tracking defaults
-        a domain added from now on starts with.
+        Returns the workspace the request acts in: its name, its slug, the tracking defaults a
+        domain added from now on starts with, and whether mail outside spaces threads across
+        addresses.
         """
         return self._request(
             "GET",
@@ -1814,9 +1938,10 @@ class Workspaces(SyncResource):
     ) -> Workspace:
         """Update the workspace.
 
-        Renames the workspace or changes its tracking defaults; only the fields given change. A
-        new name brings a new slug, which moves the console URLs with it (the provided domain
-        keeps its name), so a workspace can be renamed once a month — sooner fails with 409
+        Renames the workspace, changes its tracking defaults or switches
+        `thread_across_addresses` for mail outside spaces; only the fields given change. A new
+        name brings a new slug, which moves the console URLs with it (the provided domain keeps
+        its name), so a workspace can be renamed once a month — sooner fails with 409
         `rename_cooldown`. Tracking defaults apply to domains added from now on; each existing
         domain keeps its own. Admin only.
         """
@@ -2049,12 +2174,13 @@ class RawSpaces(SyncRawResource):
         """Create a space.
 
         Creates a space — one per customer, typically. Domains, mailboxes, rules and suppressions
-        are put in a space with `space_id` when they are created, and every email and thread
-        inherits the space of the domain or mailbox it went through. Anything created without a
-        `space_id` belongs to the workspace itself and `space_id` reads as null. API keys and
-        webhook endpoints belong to the workspace. `external_id` is your own id for the customer:
-        unique per workspace, so a second space for the same customer is `409 external_id_taken`,
-        and the space can be found by it with `GET /spaces?external_id=`.
+        are put in a space with `space_id` when they are created, and single addresses with `POST
+        /addresses`; every email and thread inherits the space of the address it went through
+        when that address is assigned to one, else of its domain or mailbox. Anything created
+        without a `space_id` belongs to the workspace itself and `space_id` reads as null. API
+        keys and webhook endpoints belong to the workspace. `external_id` is your own id for the
+        customer: unique per workspace, so a second space for the same customer is `409
+        external_id_taken`, and the space can be found by it with `GET /spaces?external_id=`.
         """
         return self._request(
             "POST",
@@ -2071,7 +2197,8 @@ class RawSpaces(SyncRawResource):
     ) -> RawResponse[Space]:
         """Retrieve a space.
 
-        Returns one space by id, with its name and the `external_id` you gave it.
+        Returns one space by id, with its name, the `external_id` you gave it and its
+        `thread_across_addresses` switch.
         """
         return self._request(
             "GET",
@@ -2088,8 +2215,8 @@ class RawSpaces(SyncRawResource):
     ) -> RawResponse[Space]:
         """Update a space.
 
-        Changes the space's name or `external_id`; only the fields given change, and
-        `external_id: null` clears it. Nothing in the space moves.
+        Changes the space's name, `external_id` or `thread_across_addresses`; only the fields
+        given change, and `external_id: null` clears it. Nothing in the space moves.
         """
         return self._request(
             "PATCH",
@@ -2109,12 +2236,106 @@ class RawSpaces(SyncRawResource):
         Marks the space for deletion and starts its teardown in the background. The space
         immediately stops accepting work and no longer appears in the API; its domains then come
         off DNS verification and sending, its mailboxes are disconnected, and its emails,
-        threads, rules and suppressions are removed. A wildcard domain in the space is deleted
-        with its subdomains, including any filed in other spaces. Admin only.
+        threads, rules and suppressions are removed. Addresses assigned to the space are
+        unassigned; one whose domain lives in another space is in that domain's space again from
+        its next email on. A wildcard domain in the space is deleted with its subdomains,
+        including any filed in other spaces, and a domain deleted with the space takes the
+        assignments of its addresses with it, whatever space they are in. Admin only.
         """
         return self._request(
             "DELETE",
             f"/spaces/{path_segment(space_id)}",
+            timeout=timeout,
+        )
+
+
+class RawAddresses(SyncRawResource):
+    """Single addresses assigned to a space of their own, whatever space their domain is in."""
+
+    def list(
+        self,
+        *,
+        limit: int | None = None,
+        cursor: str | None = None,
+        space: str | None = None,
+        address: str | None = None,
+        timeout: Timeout = None,
+    ) -> RawResponse[AddressPage]:
+        """List addresses.
+
+        Lists the addresses assigned to a space of their own, newest first. Filter by `space` for
+        one space's addresses, or by `address` to find where one address is assigned.
+
+        A listed assignment takes effect while the domain entry it was made on is the one in
+        service. Moving the domain to another space adds a new entry for the name; once that
+        entry sends and receives, the address is in the domain's space again until it is assigned
+        again, and the old assignment stays listed until the old entry is deleted, which removes
+        it.
+        """
+        return self._request(
+            "GET",
+            "/addresses",
+            params={
+                "limit": limit,
+                "cursor": cursor,
+                "space": space,
+                "address": address,
+            },
+            timeout=timeout,
+        )
+
+    def assign(
+        self,
+        params: AssignAddressRequest,
+        *,
+        timeout: Timeout = None,
+    ) -> RawResponse[Address]:
+        """Assign an address to a space.
+
+        Assigns one address of a verified domain of the workspace to a space, whatever space its
+        domain is in: one shared domain, `anna@agents.com` in one customer's space and
+        `bob@agents.com` in another's, with no DNS change. The domain still signs and carries the
+        address's mail; everything else follows the address's space — its mail and threads, the
+        `space_id` on its events and emails, its send limits, suppression lists and sender
+        reputation. `space_id: null` assigns it to the workspace itself.
+
+        The address assigned on its own wins over its domain's space. A plus-tagged address —
+        `anna+orders@agents.com` — goes where `anna@agents.com` goes unless it is assigned
+        itself. An address that is not assigned is in its domain's space, as before.
+
+        Assigning an address that is already assigned moves it. Mail it already has stays in the
+        space it was in, with that space's suppression lists; sends from it still queued or
+        scheduled fail with `sender_unknown`, as they do when a domain moves. Mail already on its
+        way while it moves stays in the space it was headed to. An agent login already connected
+        to the address stays on the old space: it keeps reading the mail there and its sends are
+        refused; connect it again for the new space. An address on no domain of the workspace
+        fails with `sender_unknown`, one on a domain that has not verified with `409
+        domain_unverified`. An assigned address does not count against the plan; the emails it
+        sends and receives do, as any email does.
+        """
+        return self._request(
+            "POST",
+            "/addresses",
+            json=params,
+            timeout=timeout,
+        )
+
+    def remove(
+        self,
+        address: str,
+        *,
+        timeout: Timeout = None,
+    ) -> RawResponse[None]:
+        """Remove an address from its space.
+
+        Removes the assignment: from its next email on, the address is where its untagged address
+        is assigned — `anna@agents.com` for `anna+orders@agents.com` — else in its domain's space
+        again. Mail it already has stays in the space it was in. An address that is not assigned
+        is `404 not_found`.
+        """
+        return self._request(
+            "DELETE",
+            f"/addresses/{path_segment(address)}",
             timeout=timeout,
         )
 
@@ -2498,7 +2719,8 @@ class RawDomains(SyncRawResource):
         has. A name one label under a wildcard of yours — `hi.acme.dev` under `*.acme.dev` — is
         created as a subdomain of it: no records, verified as soon as the wildcard is, in
         whatever `space_id` you give it. That is how a platform hands each customer an address of
-        their own without touching DNS again.
+        their own without touching DNS again. To give customers single addresses of one shared
+        domain instead, assign each address to its customer's space with `POST /addresses`.
 
         A domain name can be connected in several spaces and workspaces, but sending and
         receiving are enabled for the one whose DKIM key is published. To move them, add the
@@ -3414,8 +3636,9 @@ class RawWorkspaces(SyncRawResource):
     ) -> RawResponse[Workspace]:
         """Retrieve the workspace.
 
-        Returns the workspace the request acts in: its name, its slug, and the tracking defaults
-        a domain added from now on starts with.
+        Returns the workspace the request acts in: its name, its slug, the tracking defaults a
+        domain added from now on starts with, and whether mail outside spaces threads across
+        addresses.
         """
         return self._request(
             "GET",
@@ -3431,9 +3654,10 @@ class RawWorkspaces(SyncRawResource):
     ) -> RawResponse[Workspace]:
         """Update the workspace.
 
-        Renames the workspace or changes its tracking defaults; only the fields given change. A
-        new name brings a new slug, which moves the console URLs with it (the provided domain
-        keeps its name), so a workspace can be renamed once a month — sooner fails with 409
+        Renames the workspace, changes its tracking defaults or switches
+        `thread_across_addresses` for mail outside spaces; only the fields given change. A new
+        name brings a new slug, which moves the console URLs with it (the provided domain keeps
+        its name), so a workspace can be renamed once a month — sooner fails with 409
         `rename_cooldown`. Tracking defaults apply to domains added from now on; each existing
         domain keeps its own. Admin only.
         """
@@ -3683,12 +3907,13 @@ class AsyncSpaces(AsyncResource):
         """Create a space.
 
         Creates a space — one per customer, typically. Domains, mailboxes, rules and suppressions
-        are put in a space with `space_id` when they are created, and every email and thread
-        inherits the space of the domain or mailbox it went through. Anything created without a
-        `space_id` belongs to the workspace itself and `space_id` reads as null. API keys and
-        webhook endpoints belong to the workspace. `external_id` is your own id for the customer:
-        unique per workspace, so a second space for the same customer is `409 external_id_taken`,
-        and the space can be found by it with `GET /spaces?external_id=`.
+        are put in a space with `space_id` when they are created, and single addresses with `POST
+        /addresses`; every email and thread inherits the space of the address it went through
+        when that address is assigned to one, else of its domain or mailbox. Anything created
+        without a `space_id` belongs to the workspace itself and `space_id` reads as null. API
+        keys and webhook endpoints belong to the workspace. `external_id` is your own id for the
+        customer: unique per workspace, so a second space for the same customer is `409
+        external_id_taken`, and the space can be found by it with `GET /spaces?external_id=`.
         """
         return await self._request(
             "POST",
@@ -3705,7 +3930,8 @@ class AsyncSpaces(AsyncResource):
     ) -> Space:
         """Retrieve a space.
 
-        Returns one space by id, with its name and the `external_id` you gave it.
+        Returns one space by id, with its name, the `external_id` you gave it and its
+        `thread_across_addresses` switch.
         """
         return await self._request(
             "GET",
@@ -3722,8 +3948,8 @@ class AsyncSpaces(AsyncResource):
     ) -> Space:
         """Update a space.
 
-        Changes the space's name or `external_id`; only the fields given change, and
-        `external_id: null` clears it. Nothing in the space moves.
+        Changes the space's name, `external_id` or `thread_across_addresses`; only the fields
+        given change, and `external_id: null` clears it. Nothing in the space moves.
         """
         return await self._request(
             "PATCH",
@@ -3743,12 +3969,126 @@ class AsyncSpaces(AsyncResource):
         Marks the space for deletion and starts its teardown in the background. The space
         immediately stops accepting work and no longer appears in the API; its domains then come
         off DNS verification and sending, its mailboxes are disconnected, and its emails,
-        threads, rules and suppressions are removed. A wildcard domain in the space is deleted
-        with its subdomains, including any filed in other spaces. Admin only.
+        threads, rules and suppressions are removed. Addresses assigned to the space are
+        unassigned; one whose domain lives in another space is in that domain's space again from
+        its next email on. A wildcard domain in the space is deleted with its subdomains,
+        including any filed in other spaces, and a domain deleted with the space takes the
+        assignments of its addresses with it, whatever space they are in. Admin only.
         """
         return await self._request(
             "DELETE",
             f"/spaces/{path_segment(space_id)}",
+            timeout=timeout,
+        )
+
+
+class AsyncAddresses(AsyncResource):
+    """Single addresses assigned to a space of their own, whatever space their domain is in."""
+
+    async def list(
+        self,
+        *,
+        limit: int | None = None,
+        cursor: str | None = None,
+        space: str | None = None,
+        address: str | None = None,
+        timeout: Timeout = None,
+    ) -> AddressPage:
+        """List addresses.
+
+        Lists the addresses assigned to a space of their own, newest first. Filter by `space` for
+        one space's addresses, or by `address` to find where one address is assigned.
+
+        A listed assignment takes effect while the domain entry it was made on is the one in
+        service. Moving the domain to another space adds a new entry for the name; once that
+        entry sends and receives, the address is in the domain's space again until it is assigned
+        again, and the old assignment stays listed until the old entry is deleted, which removes
+        it.
+        """
+        return await self._request(
+            "GET",
+            "/addresses",
+            params={
+                "limit": limit,
+                "cursor": cursor,
+                "space": space,
+                "address": address,
+            },
+            timeout=timeout,
+        )
+
+    async def iter(
+        self,
+        *,
+        limit: int | None = None,
+        space: str | None = None,
+        address: str | None = None,
+        timeout: Timeout = None,
+    ) -> AsyncIterator[Address]:
+        """List addresses, every page."""
+        async for item in iterate_pages_async(
+            lambda cursor: self.list(
+                cursor=cursor,
+                limit=limit,
+                space=space,
+                address=address,
+                timeout=timeout,
+            )
+        ):
+            yield item
+
+    async def assign(
+        self,
+        params: AssignAddressRequest,
+        *,
+        timeout: Timeout = None,
+    ) -> Address:
+        """Assign an address to a space.
+
+        Assigns one address of a verified domain of the workspace to a space, whatever space its
+        domain is in: one shared domain, `anna@agents.com` in one customer's space and
+        `bob@agents.com` in another's, with no DNS change. The domain still signs and carries the
+        address's mail; everything else follows the address's space — its mail and threads, the
+        `space_id` on its events and emails, its send limits, suppression lists and sender
+        reputation. `space_id: null` assigns it to the workspace itself.
+
+        The address assigned on its own wins over its domain's space. A plus-tagged address —
+        `anna+orders@agents.com` — goes where `anna@agents.com` goes unless it is assigned
+        itself. An address that is not assigned is in its domain's space, as before.
+
+        Assigning an address that is already assigned moves it. Mail it already has stays in the
+        space it was in, with that space's suppression lists; sends from it still queued or
+        scheduled fail with `sender_unknown`, as they do when a domain moves. Mail already on its
+        way while it moves stays in the space it was headed to. An agent login already connected
+        to the address stays on the old space: it keeps reading the mail there and its sends are
+        refused; connect it again for the new space. An address on no domain of the workspace
+        fails with `sender_unknown`, one on a domain that has not verified with `409
+        domain_unverified`. An assigned address does not count against the plan; the emails it
+        sends and receives do, as any email does.
+        """
+        return await self._request(
+            "POST",
+            "/addresses",
+            json=params,
+            timeout=timeout,
+        )
+
+    async def remove(
+        self,
+        address: str,
+        *,
+        timeout: Timeout = None,
+    ) -> None:
+        """Remove an address from its space.
+
+        Removes the assignment: from its next email on, the address is where its untagged address
+        is assigned — `anna@agents.com` for `anna+orders@agents.com` — else in its domain's space
+        again. Mail it already has stays in the space it was in. An address that is not assigned
+        is `404 not_found`.
+        """
+        return await self._request(
+            "DELETE",
+            f"/addresses/{path_segment(address)}",
             timeout=timeout,
         )
 
@@ -4220,7 +4560,8 @@ class AsyncDomains(AsyncResource):
         has. A name one label under a wildcard of yours — `hi.acme.dev` under `*.acme.dev` — is
         created as a subdomain of it: no records, verified as soon as the wildcard is, in
         whatever `space_id` you give it. That is how a platform hands each customer an address of
-        their own without touching DNS again.
+        their own without touching DNS again. To give customers single addresses of one shared
+        domain instead, assign each address to its customer's space with `POST /addresses`.
 
         A domain name can be connected in several spaces and workspaces, but sending and
         receiving are enabled for the one whose DKIM key is published. To move them, add the
@@ -5276,8 +5617,9 @@ class AsyncWorkspaces(AsyncResource):
     ) -> Workspace:
         """Retrieve the workspace.
 
-        Returns the workspace the request acts in: its name, its slug, and the tracking defaults
-        a domain added from now on starts with.
+        Returns the workspace the request acts in: its name, its slug, the tracking defaults a
+        domain added from now on starts with, and whether mail outside spaces threads across
+        addresses.
         """
         return await self._request(
             "GET",
@@ -5293,9 +5635,10 @@ class AsyncWorkspaces(AsyncResource):
     ) -> Workspace:
         """Update the workspace.
 
-        Renames the workspace or changes its tracking defaults; only the fields given change. A
-        new name brings a new slug, which moves the console URLs with it (the provided domain
-        keeps its name), so a workspace can be renamed once a month — sooner fails with 409
+        Renames the workspace, changes its tracking defaults or switches
+        `thread_across_addresses` for mail outside spaces; only the fields given change. A new
+        name brings a new slug, which moves the console URLs with it (the provided domain keeps
+        its name), so a workspace can be renamed once a month — sooner fails with 409
         `rename_cooldown`. Tracking defaults apply to domains added from now on; each existing
         domain keeps its own. Admin only.
         """
@@ -5528,12 +5871,13 @@ class AsyncRawSpaces(AsyncRawResource):
         """Create a space.
 
         Creates a space — one per customer, typically. Domains, mailboxes, rules and suppressions
-        are put in a space with `space_id` when they are created, and every email and thread
-        inherits the space of the domain or mailbox it went through. Anything created without a
-        `space_id` belongs to the workspace itself and `space_id` reads as null. API keys and
-        webhook endpoints belong to the workspace. `external_id` is your own id for the customer:
-        unique per workspace, so a second space for the same customer is `409 external_id_taken`,
-        and the space can be found by it with `GET /spaces?external_id=`.
+        are put in a space with `space_id` when they are created, and single addresses with `POST
+        /addresses`; every email and thread inherits the space of the address it went through
+        when that address is assigned to one, else of its domain or mailbox. Anything created
+        without a `space_id` belongs to the workspace itself and `space_id` reads as null. API
+        keys and webhook endpoints belong to the workspace. `external_id` is your own id for the
+        customer: unique per workspace, so a second space for the same customer is `409
+        external_id_taken`, and the space can be found by it with `GET /spaces?external_id=`.
         """
         return await self._request(
             "POST",
@@ -5550,7 +5894,8 @@ class AsyncRawSpaces(AsyncRawResource):
     ) -> RawResponse[Space]:
         """Retrieve a space.
 
-        Returns one space by id, with its name and the `external_id` you gave it.
+        Returns one space by id, with its name, the `external_id` you gave it and its
+        `thread_across_addresses` switch.
         """
         return await self._request(
             "GET",
@@ -5567,8 +5912,8 @@ class AsyncRawSpaces(AsyncRawResource):
     ) -> RawResponse[Space]:
         """Update a space.
 
-        Changes the space's name or `external_id`; only the fields given change, and
-        `external_id: null` clears it. Nothing in the space moves.
+        Changes the space's name, `external_id` or `thread_across_addresses`; only the fields
+        given change, and `external_id: null` clears it. Nothing in the space moves.
         """
         return await self._request(
             "PATCH",
@@ -5588,12 +5933,106 @@ class AsyncRawSpaces(AsyncRawResource):
         Marks the space for deletion and starts its teardown in the background. The space
         immediately stops accepting work and no longer appears in the API; its domains then come
         off DNS verification and sending, its mailboxes are disconnected, and its emails,
-        threads, rules and suppressions are removed. A wildcard domain in the space is deleted
-        with its subdomains, including any filed in other spaces. Admin only.
+        threads, rules and suppressions are removed. Addresses assigned to the space are
+        unassigned; one whose domain lives in another space is in that domain's space again from
+        its next email on. A wildcard domain in the space is deleted with its subdomains,
+        including any filed in other spaces, and a domain deleted with the space takes the
+        assignments of its addresses with it, whatever space they are in. Admin only.
         """
         return await self._request(
             "DELETE",
             f"/spaces/{path_segment(space_id)}",
+            timeout=timeout,
+        )
+
+
+class AsyncRawAddresses(AsyncRawResource):
+    """Single addresses assigned to a space of their own, whatever space their domain is in."""
+
+    async def list(
+        self,
+        *,
+        limit: int | None = None,
+        cursor: str | None = None,
+        space: str | None = None,
+        address: str | None = None,
+        timeout: Timeout = None,
+    ) -> RawResponse[AddressPage]:
+        """List addresses.
+
+        Lists the addresses assigned to a space of their own, newest first. Filter by `space` for
+        one space's addresses, or by `address` to find where one address is assigned.
+
+        A listed assignment takes effect while the domain entry it was made on is the one in
+        service. Moving the domain to another space adds a new entry for the name; once that
+        entry sends and receives, the address is in the domain's space again until it is assigned
+        again, and the old assignment stays listed until the old entry is deleted, which removes
+        it.
+        """
+        return await self._request(
+            "GET",
+            "/addresses",
+            params={
+                "limit": limit,
+                "cursor": cursor,
+                "space": space,
+                "address": address,
+            },
+            timeout=timeout,
+        )
+
+    async def assign(
+        self,
+        params: AssignAddressRequest,
+        *,
+        timeout: Timeout = None,
+    ) -> RawResponse[Address]:
+        """Assign an address to a space.
+
+        Assigns one address of a verified domain of the workspace to a space, whatever space its
+        domain is in: one shared domain, `anna@agents.com` in one customer's space and
+        `bob@agents.com` in another's, with no DNS change. The domain still signs and carries the
+        address's mail; everything else follows the address's space — its mail and threads, the
+        `space_id` on its events and emails, its send limits, suppression lists and sender
+        reputation. `space_id: null` assigns it to the workspace itself.
+
+        The address assigned on its own wins over its domain's space. A plus-tagged address —
+        `anna+orders@agents.com` — goes where `anna@agents.com` goes unless it is assigned
+        itself. An address that is not assigned is in its domain's space, as before.
+
+        Assigning an address that is already assigned moves it. Mail it already has stays in the
+        space it was in, with that space's suppression lists; sends from it still queued or
+        scheduled fail with `sender_unknown`, as they do when a domain moves. Mail already on its
+        way while it moves stays in the space it was headed to. An agent login already connected
+        to the address stays on the old space: it keeps reading the mail there and its sends are
+        refused; connect it again for the new space. An address on no domain of the workspace
+        fails with `sender_unknown`, one on a domain that has not verified with `409
+        domain_unverified`. An assigned address does not count against the plan; the emails it
+        sends and receives do, as any email does.
+        """
+        return await self._request(
+            "POST",
+            "/addresses",
+            json=params,
+            timeout=timeout,
+        )
+
+    async def remove(
+        self,
+        address: str,
+        *,
+        timeout: Timeout = None,
+    ) -> RawResponse[None]:
+        """Remove an address from its space.
+
+        Removes the assignment: from its next email on, the address is where its untagged address
+        is assigned — `anna@agents.com` for `anna+orders@agents.com` — else in its domain's space
+        again. Mail it already has stays in the space it was in. An address that is not assigned
+        is `404 not_found`.
+        """
+        return await self._request(
+            "DELETE",
+            f"/addresses/{path_segment(address)}",
             timeout=timeout,
         )
 
@@ -5977,7 +6416,8 @@ class AsyncRawDomains(AsyncRawResource):
         has. A name one label under a wildcard of yours — `hi.acme.dev` under `*.acme.dev` — is
         created as a subdomain of it: no records, verified as soon as the wildcard is, in
         whatever `space_id` you give it. That is how a platform hands each customer an address of
-        their own without touching DNS again.
+        their own without touching DNS again. To give customers single addresses of one shared
+        domain instead, assign each address to its customer's space with `POST /addresses`.
 
         A domain name can be connected in several spaces and workspaces, but sending and
         receiving are enabled for the one whose DKIM key is published. To move them, add the
@@ -6893,8 +7333,9 @@ class AsyncRawWorkspaces(AsyncRawResource):
     ) -> RawResponse[Workspace]:
         """Retrieve the workspace.
 
-        Returns the workspace the request acts in: its name, its slug, and the tracking defaults
-        a domain added from now on starts with.
+        Returns the workspace the request acts in: its name, its slug, the tracking defaults a
+        domain added from now on starts with, and whether mail outside spaces threads across
+        addresses.
         """
         return await self._request(
             "GET",
@@ -6910,9 +7351,10 @@ class AsyncRawWorkspaces(AsyncRawResource):
     ) -> RawResponse[Workspace]:
         """Update the workspace.
 
-        Renames the workspace or changes its tracking defaults; only the fields given change. A
-        new name brings a new slug, which moves the console URLs with it (the provided domain
-        keeps its name), so a workspace can be renamed once a month — sooner fails with 409
+        Renames the workspace, changes its tracking defaults or switches
+        `thread_across_addresses` for mail outside spaces; only the fields given change. A new
+        name brings a new slug, which moves the console URLs with it (the provided domain keeps
+        its name), so a workspace can be renamed once a month — sooner fails with 409
         `rename_cooldown`. Tracking defaults apply to domains added from now on; each existing
         domain keeps its own. Admin only.
         """

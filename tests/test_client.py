@@ -221,7 +221,11 @@ def test_spaces_crud_filter_and_space_id_on_create() -> None:
         seen.append((request.method, request.url.path, body, dict(request.url.params)))
         if request.method == "DELETE":
             return httpx.Response(204)
-        if request.method == "GET" and request.url.path in {"/api/v2/spaces", "/api/v2/domains"}:
+        if request.method == "GET" and request.url.path in {
+            "/api/v2/spaces",
+            "/api/v2/domains",
+            "/api/v2/addresses",
+        }:
             return httpx.Response(200, json={"data": [{"id": "spc_1"}], "next_cursor": None})
         return httpx.Response(
             201, json={"id": "spc_1", "name": "Acme", "created_at": "now", "space_id": "spc_1"}
@@ -234,10 +238,15 @@ def test_spaces_crud_filter_and_space_id_on_create() -> None:
     assert created["name"] == "Acme"
     assert [space["id"] for space in client.spaces.iter()] == ["spc_1"]
     client.spaces.retrieve("spc_1")
-    client.spaces.update("spc_1", {"name": "Acme Inc", "external_id": None})
+    client.spaces.update(
+        "spc_1", {"name": "Acme Inc", "external_id": None, "thread_across_addresses": True}
+    )
     client.spaces.delete("spc_1")
     client.domains.list(space="spc_1")
     client.domains.create({"name": "acme.example.com", "space_id": "spc_1"})
+    client.addresses.assign({"address": "anna@agents.example.com", "space_id": "spc_1"})
+    client.addresses.list(address="anna@agents.example.com")
+    client.addresses.remove("anna+orders@agents.example.com")
     assert [(method, path) for method, path, _, _ in seen] == [
         ("POST", "/api/v2/spaces"),
         ("GET", "/api/v2/spaces"),
@@ -246,11 +255,20 @@ def test_spaces_crud_filter_and_space_id_on_create() -> None:
         ("DELETE", "/api/v2/spaces/spc_1"),
         ("GET", "/api/v2/domains"),
         ("POST", "/api/v2/domains"),
+        ("POST", "/api/v2/addresses"),
+        ("GET", "/api/v2/addresses"),
+        ("DELETE", "/api/v2/addresses/anna+orders@agents.example.com"),
     ]
     assert seen[0][2] == {"name": "Acme", "external_id": "cus_1"}
-    assert seen[3][2] == {"name": "Acme Inc", "external_id": None}
+    assert seen[3][2] == {
+        "name": "Acme Inc",
+        "external_id": None,
+        "thread_across_addresses": True,
+    }
     assert seen[5][3] == {"space": "spc_1"}
     assert seen[6][2] == {"name": "acme.example.com", "space_id": "spc_1"}
+    assert seen[7][2] == {"address": "anna@agents.example.com", "space_id": "spc_1"}
+    assert seen[8][3] == {"address": "anna@agents.example.com"}
 
 
 def test_retrieve_email_expands_attachment_content() -> None:

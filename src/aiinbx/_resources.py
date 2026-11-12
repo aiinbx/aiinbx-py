@@ -9,7 +9,9 @@ from collections.abc import AsyncIterator, Iterator
 
 from ._base import Timeout
 from ._generated.resources import (
+    Addresses,
     ApiKeys,
+    AsyncAddresses,
     AsyncApiKeys,
     AsyncAttachments,
     AsyncDomains,
@@ -21,6 +23,7 @@ from ._generated.resources import (
     AsyncOauthApps,
     AsyncPacing,
     AsyncPacingRules,
+    AsyncRawAddresses,
     AsyncRawApiKeys,
     AsyncRawAttachments,
     AsyncRawDomains,
@@ -53,6 +56,7 @@ from ._generated.resources import (
     OauthApps,
     Pacing,
     PacingRules,
+    RawAddresses,
     RawApiKeys,
     RawAttachments,
     RawDomains,
@@ -77,7 +81,9 @@ from ._generated.resources import (
 from .models import FullEmail, FullThread
 
 __all__ = [
+    "Addresses",
     "ApiKeys",
+    "AsyncAddresses",
     "AsyncApiKeys",
     "AsyncAttachments",
     "AsyncDomains",
@@ -89,6 +95,7 @@ __all__ = [
     "AsyncOauthApps",
     "AsyncPacing",
     "AsyncPacingRules",
+    "AsyncRawAddresses",
     "AsyncRawApiKeys",
     "AsyncRawAttachments",
     "AsyncRawDomains",
@@ -120,6 +127,7 @@ __all__ = [
     "OauthApps",
     "Pacing",
     "PacingRules",
+    "RawAddresses",
     "RawApiKeys",
     "RawAttachments",
     "RawDomains",

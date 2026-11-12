@@ -752,6 +752,13 @@ class CreateSpaceRequest(TypedDict):
     """The space's name."""
     external_id: NotRequired[str]
     """Your own id for the customer the space stands for. Unique per workspace."""
+    thread_across_addresses: NotRequired[bool]
+    """Whether an email without reply headers that arrives in the space can join any matching
+    conversation in the space. Off, the default, it joins only a conversation the address it
+    arrived at already took part in: sent in, received in, or was the Reply-To of. An email with
+    reply headers always joins the conversation it answers. Turn it on when several of your
+    addresses write to the same contacts in the same conversations.
+    """
 
 
 class UpdateSpaceRequest(TypedDict):
@@ -759,6 +766,20 @@ class UpdateSpaceRequest(TypedDict):
     """The space's name."""
     external_id: NotRequired[str | None]
     """Null clears it."""
+    thread_across_addresses: NotRequired[bool]
+    """Whether an email without reply headers that arrives in the space can join any matching
+    conversation in the space. Off, the default, it joins only a conversation the address it
+    arrived at already took part in: sent in, received in, or was the Reply-To of. An email with
+    reply headers always joins the conversation it answers. Turn it on when several of your
+    addresses write to the same contacts in the same conversations.
+    """
+
+
+class AssignAddressRequest(TypedDict):
+    address: str
+    """The address, on a verified domain of the workspace. Lowercased; a plus tag is part of it."""
+    space_id: str | None
+    """The space it goes in. Null assigns it to the workspace itself."""
 
 
 class CreateApiKeyRequest(TypedDict):
@@ -1228,6 +1249,13 @@ class UpdateWorkspaceRequest(TypedDict):
     """What a domain added from now on starts with. Only the fields given change; existing domains
     keep theirs.
     """
+    thread_across_addresses: NotRequired[bool]
+    """Whether an email without reply headers that arrives outside spaces can join any matching
+    conversation outside spaces. Off, the default, it joins only a conversation the address it
+    arrived at already took part in: sent in, received in, or was the Reply-To of. An email with
+    reply headers always joins the conversation it answers. Turn it on when several of your
+    addresses write to the same contacts in the same conversations.
+    """
 
 
 class UpdateMemberRequest(TypedDict):
@@ -1264,10 +1292,36 @@ class Space(TypedDict):
     name: str
     external_id: str | None
     """Your own id for the customer, if you set one."""
+    thread_across_addresses: bool
+    """Whether an email without reply headers that arrives in the space can join any matching
+    conversation in the space. Off, the default, it joins only a conversation the address it
+    arrived at already took part in: sent in, received in, or was the Reply-To of. An email with
+    reply headers always joins the conversation it answers. Turn it on when several of your
+    addresses write to the same contacts in the same conversations.
+    """
     created_at: str
 
 
 SpacePage = CursorPage[Space]
+
+
+class Address(TypedDict):
+    """An address assigned to a space of its own, whatever space its domain is in. Its mail,
+    threads, send limits, suppression lists and sender reputation are that space's.
+    """
+
+    address: str
+    space_id: str | None
+    """Which space a resource is in. Null is the workspace itself — what every resource of a
+    workspace that has no spaces says.
+    """
+    domain_id: str
+    """The domain the address is on. It still signs and carries the address's mail."""
+    created_at: str
+    """When the address was first assigned. Moving it keeps the date."""
+
+
+AddressPage = CursorPage[Address]
 
 
 class ApiKey(TypedDict):
@@ -1938,6 +1992,13 @@ class Workspace(TypedDict):
     """
     tracking: DomainTracking
     """What a domain added from now on starts with."""
+    thread_across_addresses: bool
+    """Whether an email without reply headers that arrives outside spaces can join any matching
+    conversation outside spaces. Off, the default, it joins only a conversation the address it
+    arrived at already took part in: sent in, received in, or was the Reply-To of. An email with
+    reply headers always joins the conversation it answers. Turn it on when several of your
+    addresses write to the same contacts in the same conversations.
+    """
     inboxes: list[Inbox] | None
     """The inboxes the caller is held to here, when it was connected as an inbox: it reads their
     mail and sends as them, and nothing else. Null for a connection to the whole workspace, and
